@@ -39,6 +39,27 @@ It's a PWA: `manifest.webmanifest` + a service worker (`sw.js`) cache the shell 
 - The one hard part is **provably-fair randomness**: affix rolls must use a VRF
   (Switchboard) or commit-reveal, or players will assume the house cheats.
 
+## Game structure (current build)
+Two PvE modes selected from a home screen; gold and your item collection persist (localStorage).
+
+**Three zones + economy**
+- **Shop** (slide-up sheet): items have a **Buy** button → purchases go to your **Inventory**.
+  Every shop/inventory item shows a mini **shape preview** of the cells it occupies.
+- **Inventory**: owned-but-unequipped items. **Drag** one onto the **field** to equip.
+- **Equipped field**: your battle grid. Drag items to reposition, or back to inventory to unequip.
+- **Sell dock**: drag any item (from inventory *or* field) onto it to sell for `ceil(cost / 2)`.
+
+**Modes**
+- **⛰️ Endless Tower** — infinite escalating floors; shop/sell/re-equip between fights; tracks best
+  floor; one loss ends the climb but gold/loot persist. No blessings (pure build optimization).
+- **🗝️ Daily Dungeon** — the roguelike mode. 10 floors, boss on floor 10, depth-scaled rewards.
+  - **Shared daily seed**: the whole dungeon is generated from today's date — same run for everyone,
+    leaderboard-ready, and a direct stand-in for an on-chain VRF daily seed.
+  - **Blessings**: after each cleared floor, pick **1 of 3** run-only relics (Berserk, Fleet,
+    Vampiric, Midas, …) that stack over the run and vanish when it ends.
+  - **Permadeath + banked rewards**: one life; rewards scale with the floor reached; the boss is
+    the jackpot.
+
 ## Core gameplay loop
 1. **Acquire** — spend currency/mats to roll an item: base type chosen, then N affixes roll
    from a weighted, tiered pool. → (later) mints a loot NFT.

@@ -14,213 +14,248 @@
 <title>Affix Brawlers</title>
 <style>
   :root {
-    --bg: #11131a; --panel: #1b1f2b; --panel2: #232838; --line: #2e3548;
-    --ink: #e6e9f0; --muted: #8b93a7; --gold: #f5c451; --hp: #4ade80;
-    --common: #9aa3b5; --magic: #6aa9ff; --rare: #f5c451; --epic: #c084fc;
-    --safe-t: env(safe-area-inset-top, 0px);
-    --safe-b: env(safe-area-inset-bottom, 0px);
+    --bg:#11131a; --panel:#1b1f2b; --panel2:#232838; --line:#2e3548;
+    --ink:#e6e9f0; --muted:#8b93a7; --gold:#f5c451; --hp:#4ade80;
+    --common:#9aa3b5; --magic:#6aa9ff; --rare:#f5c451; --epic:#c084fc;
+    --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
-  body {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.45;
-    display: flex; flex-direction: column;
-    padding-top: var(--safe-t);
-  }
-  body.dragging { touch-action: none; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; overscroll-behavior:none; }
+  body { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; background:var(--bg);
+    color:var(--ink); font-size:13px; line-height:1.45; padding-top:var(--safe-t); }
+  body.dragging { touch-action:none; }
+  .view { display:none; flex-direction:column; height:100%; }
+  .view.active { display:flex; }
 
-  /* Top bar */
-  .topbar {
-    flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
-    padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line);
-  }
-  .topbar .logo { font-size: 15px; font-weight: bold; letter-spacing: .5px; }
-  .topbar .spacer { flex: 1; }
-  .pill { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px;
-    padding: 3px 9px; font-size: 11px; white-space: nowrap; }
-  .pill b { color: var(--gold); }
+  .topbar { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:8px 12px;
+    background:var(--panel); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .topbar .logo { font-size:14px; font-weight:bold; letter-spacing:.5px; }
+  .topbar .spacer { flex:1; }
+  .pill { background:var(--panel2); border:1px solid var(--line); border-radius:999px;
+    padding:3px 9px; font-size:11px; white-space:nowrap; }
+  .pill b { color:var(--gold); }
+  .bchips { display:flex; gap:4px; flex-wrap:wrap; width:100%; }
+  .bchip { background:var(--panel2); border:1px solid var(--epic); color:var(--epic);
+    border-radius:999px; padding:1px 7px; font-size:10px; }
 
-  /* Scroll area */
-  .scroll { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
-    -webkit-overflow-scrolling: touch; padding: 10px 12px 4px; }
-  .scroll.locked { overflow: hidden; }
-  h2 { font-size: 11px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+  .scroll { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding:10px 12px 6px; }
+  h2 { font-size:11px; margin:0 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px; }
+  .hint { color:var(--muted); font-size:11px; margin:2px 0 8px; }
 
-  /* Shop */
-  #shop { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .shopcard {
-    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
-    padding: 8px; font-size: 11px; touch-action: none; position: relative;
-  }
-  .shopcard .nm { font-weight: bold; margin-bottom: 2px; font-size: 12px; }
-  .shopcard .af { color: var(--muted); font-size: 10px; }
-  .shopcard .cost { position: absolute; top: 6px; right: 8px; color: var(--gold); font-weight: bold; }
+  /* Grid / field */
+  #gridWrap { display:flex; justify-content:center; }
+  #grid { display:grid; gap:4px; position:relative; touch-action:none; }
+  .cell { background:var(--panel2); border:1px solid var(--line); border-radius:8px; position:relative; }
+  .cell.ok { outline:2px solid var(--hp); outline-offset:-2px; }
+  .cell.bad { outline:2px solid #f87171; outline-offset:-2px; }
+  .item { position:absolute; border-radius:8px; padding:3px; touch-action:none; border:1px solid var(--line);
+    background:var(--panel2); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:10px; overflow:hidden; text-align:center; }
+  .item .ic { font-size:20px; line-height:1; }
+  .item .tag { color:var(--muted); font-size:9px; }
+  .r-common{border-color:var(--common)} .r-magic{border-color:var(--magic);box-shadow:inset 0 0 0 1px var(--magic)}
+  .r-rare{border-color:var(--rare);box-shadow:inset 0 0 0 1px var(--rare)} .r-epic{border-color:var(--epic);box-shadow:inset 0 0 0 1px var(--epic)}
+  .c-common{color:var(--common)} .c-magic{color:var(--magic)} .c-rare{color:var(--rare)} .c-epic{color:var(--epic)}
 
-  /* Grid */
-  #gridWrap { display: flex; justify-content: center; }
-  #grid { display: grid; gap: 4px; position: relative; touch-action: none; }
-  .cell { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; position: relative; }
-  .cell.ok { outline: 2px solid var(--hp); outline-offset: -2px; }
-  .cell.bad { outline: 2px solid #f87171; outline-offset: -2px; }
+  /* Inventory */
+  #inv { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:8px; min-height:64px; }
+  #inv.empty::after { content:"empty — buy from the shop"; color:var(--muted); font-size:11px; grid-column:1/-1; text-align:center; padding:14px 0; }
+  .invtile { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:6px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; touch-action:none; position:relative; }
+  .invtile .ic { font-size:22px; }
+  .invtile .nm { font-size:9px; color:var(--muted); }
+  .shape { display:grid; gap:1px; }
+  .shape i { width:5px; height:5px; background:var(--gold); border-radius:1px; display:block; }
 
-  .item {
-    position: absolute; border-radius: 8px; padding: 3px; touch-action: none;
-    border: 1px solid var(--line); background: var(--panel2);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-size: 10px; overflow: hidden; text-align: center;
-  }
-  .item .ic { font-size: 20px; line-height: 1; }
-  .item .tag { color: var(--muted); font-size: 9px; }
-  .r-common { border-color: var(--common); }
-  .r-magic { border-color: var(--magic); box-shadow: inset 0 0 0 1px var(--magic); }
-  .r-rare  { border-color: var(--rare);  box-shadow: inset 0 0 0 1px var(--rare); }
-  .r-epic  { border-color: var(--epic);  box-shadow: inset 0 0 0 1px var(--epic); }
-  .c-common { color: var(--common); } .c-magic { color: var(--magic); }
-  .c-rare { color: var(--rare); } .c-epic { color: var(--epic); }
-
-  /* Ghost that follows the finger */
-  #ghost { position: fixed; z-index: 100; pointer-events: none; border-radius: 8px;
-    border: 2px dashed var(--gold); background: rgba(245,196,81,.12);
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
-    transform: translate(-50%, -50%); }
-
-  /* Salvage zone */
-  #salvage { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center;
-    color: var(--muted); font-size: 11px; transition: all .15s; }
-  #salvage.hot { border-color: #f87171; color: #f87171; background: rgba(248,113,113,.08); }
+  /* shop / sheets */
+  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:90; background:#0c0e14;
+    border-top:1px solid var(--gold); border-radius:16px 16px 0 0; padding:14px 14px calc(16px+var(--safe-b));
+    transform:translateY(110%); transition:transform .22s ease; box-shadow:0 -8px 24px rgba(0,0,0,.5);
+    max-height:82vh; overflow-y:auto; }
+  .sheet.open { transform:translateY(0); }
+  .sheet .close { float:right; background:none; border:none; color:var(--muted); font-size:20px; padding:0; }
+  #scrim { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:89; opacity:0; pointer-events:none; transition:opacity .2s; }
+  #scrim.open { opacity:1; pointer-events:auto; }
+  #shopList { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; }
+  .shopcard { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px; font-size:11px; }
+  .shopcard .nm { font-weight:bold; font-size:12px; }
+  .shopcard .af { color:var(--muted); font-size:10px; }
+  .shoprow { display:flex; align-items:center; gap:6px; margin:4px 0; }
+  .buybtn { width:100%; margin-top:6px; padding:7px; }
 
   /* Battle */
-  .fighters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
-  .hpbar { height: 14px; background: #2a1414; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
-  .hpbar > div { height: 100%; background: var(--hp); transition: width .12s; }
-  .hpbar.foe > div { background: #f87171; }
-  .hprow { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
-  #log { height: 130px; overflow-y: auto; font-size: 11px; background: var(--panel2);
-    border: 1px solid var(--line); border-radius: 8px; padding: 7px; margin-top: 8px; }
-  #log .you { color: var(--hp); } #log .foe { color: #f87171; } #log .sys { color: var(--muted); }
+  #battleView { z-index:80; }
+  .fighters { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px; }
+  .hpbar { height:16px; background:#2a1414; border-radius:4px; overflow:hidden; border:1px solid var(--line); }
+  .hpbar > div { height:100%; background:var(--hp); transition:width .12s; }
+  .hpbar.foe > div { background:#f87171; }
+  .hprow { display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; }
+  #log { flex:1 1 auto; overflow-y:auto; font-size:11px; background:var(--panel2); border:1px solid var(--line);
+    border-radius:8px; padding:8px; margin-top:8px; }
+  #log .you{color:var(--hp)} #log .foe{color:#f87171} #log .sys{color:var(--muted)} #log .boss{color:var(--epic);font-weight:bold}
 
-  .reroll { width: 100%; margin-top: 8px; }
-  button {
-    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
-    border-radius: 10px; padding: 11px 14px; font-family: inherit; font-size: 13px;
-    cursor: pointer; touch-action: manipulation;
-  }
-  button:active { transform: scale(.98); }
-  button.primary { background: var(--gold); color: #1a1a1a; border-color: var(--gold); font-weight: bold; }
-  button:disabled { opacity: .4; }
+  button { background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; font-family:inherit; font-size:13px; cursor:pointer; touch-action:manipulation; }
+  button:active { transform:scale(.98); }
+  button.primary { background:var(--gold); color:#1a1a1a; border-color:var(--gold); font-weight:bold; }
+  button.ghostbtn { background:transparent; }
+  button:disabled { opacity:.4; }
 
-  /* Sticky bottom action bar */
-  .actionbar {
-    flex: 0 0 auto; display: flex; gap: 8px; padding: 8px 12px;
-    padding-bottom: calc(8px + var(--safe-b));
-    background: var(--panel); border-top: 1px solid var(--line);
-  }
-  .actionbar button { flex: 1; }
-  .actionbar .fightbtn { flex: 2; }
+  /* sell dock + action bar */
+  #sellDock { flex:0 0 auto; margin:0 12px 6px; border:1px dashed var(--line); border-radius:10px;
+    padding:9px; text-align:center; color:var(--muted); font-size:11px; transition:all .15s; }
+  #sellDock.hot { border-color:var(--gold); color:var(--gold); background:rgba(245,196,81,.08); }
+  .actionbar { flex:0 0 auto; display:flex; gap:8px; padding:8px 12px calc(8px+var(--safe-b));
+    background:var(--panel); border-top:1px solid var(--line); }
+  .actionbar button { flex:1; }
+  .actionbar .fightbtn { flex:1.6; }
 
-  /* Info sheet (bottom) */
-  #sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-    background: #0c0e14; border-top: 1px solid var(--gold); border-radius: 16px 16px 0 0;
-    padding: 14px 16px calc(18px + var(--safe-b)); transform: translateY(110%);
-    transition: transform .2s ease; box-shadow: 0 -8px 24px rgba(0,0,0,.5); }
-  #sheet.open { transform: translateY(0); }
-  #sheet .close { float: right; background: none; border: none; color: var(--muted); font-size: 18px; padding: 0; }
-  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 89; opacity: 0; pointer-events: none; transition: opacity .2s; }
-  #scrim.open { opacity: 1; pointer-events: auto; }
+  /* home */
+  #home .scroll { padding:16px; }
+  .bigtitle { font-size:22px; font-weight:bold; letter-spacing:1px; margin:8px 0 2px; }
+  .modecard { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .modecard h3 { margin:0 0 4px; font-size:16px; }
+  .modecard p { margin:0 0 12px; color:var(--muted); font-size:12px; }
+  .modecard .meta { color:var(--gold); font-size:12px; margin-bottom:10px; }
 
-  .hint { color: var(--muted); font-size: 11px; margin: 2px 0 8px; }
-  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 56px); transform: translateX(-50%);
-    background: #0c0e14; border: 1px solid var(--gold); color: var(--gold);
-    padding: 7px 14px; border-radius: 999px; font-size: 12px; z-index: 110;
-    opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
-  .toast.show { opacity: 1; }
+  /* ghost + toast + modal */
+  #ghost { position:fixed; z-index:120; pointer-events:none; border-radius:8px; border:2px dashed var(--gold);
+    background:rgba(245,196,81,.15); display:flex; align-items:center; justify-content:center; font-size:22px;
+    transform:translate(-50%,-50%); }
+  .toast { position:fixed; left:50%; top:calc(var(--safe-t) + 60px); transform:translateX(-50%); background:#0c0e14;
+    border:1px solid var(--gold); color:var(--gold); padding:7px 14px; border-radius:999px; font-size:12px;
+    z-index:130; opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; max-width:90vw; }
+  .toast.show { opacity:1; }
+  #modal { position:fixed; inset:0; z-index:140; display:none; align-items:center; justify-content:center; padding:20px;
+    background:rgba(0,0,0,.6); }
+  #modal.open { display:flex; }
+  .modalbox { background:#0c0e14; border:1px solid var(--gold); border-radius:16px; padding:18px; width:100%; max-width:420px; }
+  .modalbox h3 { margin:0 0 8px; }
+  .blessings { display:grid; gap:8px; margin:10px 0; }
+  .bcard { background:var(--panel2); border:1px solid var(--epic); border-radius:10px; padding:10px; text-align:left; }
+  .bcard .bn { color:var(--epic); font-weight:bold; }
+  .bcard .bd { color:var(--muted); font-size:11px; }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <span class="logo">⚔️ Brawlers</span>
-    <span class="spacer"></span>
-    <span class="pill">R<b id="round">1</b></span>
-    <span class="pill">💰<b id="gold">10</b></span>
-    <span class="pill"><b id="record">0/0</b></span>
-  </div>
 
+<!-- HOME -->
+<div class="view active" id="home">
+  <div class="topbar"><span class="logo">⚔️ AFFIX BRAWLERS</span><span class="spacer"></span>
+    <span class="pill">💰<b id="homeGold">0</b></span></div>
+  <div class="scroll">
+    <div class="bigtitle">Choose your run</div>
+    <div class="hint">A spatial auto-battler with affix-rolled loot. Your gold &amp; items persist.</div>
+
+    <div class="modecard">
+      <h3>⛰️ Endless Tower</h3>
+      <p>Climb floors of progressively harder foes. Shop, sell &amp; re-equip between fights. One loss ends the climb — but you keep your gold and loot.</p>
+      <div class="meta" id="towerMeta">Best floor: —</div>
+      <button class="primary" style="width:100%" id="startTower">Enter the Tower</button>
+    </div>
+
+    <div class="modecard">
+      <h3>🗝️ Daily Dungeon</h3>
+      <p>A <b>seeded</b> 10-floor gauntlet — same for everyone today. After each floor, choose a <b>Blessing</b> (run-only relic). Boss on floor 10. <b>Permadeath:</b> rewards scale with how deep you get.</p>
+      <div class="meta" id="dailyMeta">Today • not yet attempted</div>
+      <button class="primary" style="width:100%" id="startDaily">Enter the Dungeon</button>
+    </div>
+
+    <button class="ghostbtn" style="width:100%; color:var(--muted); font-size:11px" id="resetSave">↺ Reset save (debug)</button>
+  </div>
+</div>
+
+<!-- PREP -->
+<div class="view" id="prep">
+  <div class="topbar">
+    <span class="logo" id="prepMode">RUN</span>
+    <span class="pill">Floor <b id="prepFloor">1</b></span>
+    <span class="spacer"></span>
+    <span class="pill">💰<b id="prepGold">0</b></span>
+    <div class="bchips" id="prepBlessings"></div>
+  </div>
   <div class="scroll" id="scroll">
     <div class="card">
-      <h2>Shop · roll 2💰</h2>
-      <div id="shop"></div>
-      <button class="reroll" id="reroll">🎲 Reroll shop (2💰)</button>
-    </div>
-
-    <div class="card">
-      <h2>Backpack — drag items in · tap for info</h2>
-      <div class="hint" id="hint">Drag an item from the shop onto the grid. Put a Whetstone 🪨 next to weapons.</div>
+      <h2>Equipped field — drag to arrange · tap for info</h2>
+      <div class="hint" id="fieldHint">Drag items from your inventory below onto the grid. Put a Whetstone 🪨 next to weapons.</div>
       <div id="gridWrap"><div id="grid"></div></div>
-      <div id="salvage" style="margin-top:10px">🗑️ drag an item here to salvage (+1💰)</div>
     </div>
-
     <div class="card">
-      <h2>Battle</h2>
-      <div class="fighters">
-        <div>
-          <div class="hprow"><b class="c-magic">YOU</b><span id="youhp">—</span></div>
-          <div class="hpbar"><div id="youbar" style="width:100%"></div></div>
-        </div>
-        <div>
-          <div class="hprow"><b style="color:#f87171">FOE</b><span id="foehp">—</span></div>
-          <div class="hpbar foe"><div id="foebar" style="width:100%"></div></div>
-        </div>
-      </div>
-      <div id="log"></div>
+      <h2>Inventory — drag onto the field to equip</h2>
+      <div id="inv"></div>
     </div>
   </div>
-
+  <div id="sellDock">🪙 drag an item here to <b>SELL</b> (½ value, rounded up)</div>
   <div class="actionbar">
-    <button class="fightbtn primary" id="fight">⚔️ Fight</button>
-    <button id="next" disabled>Next ▶</button>
+    <button id="openShop">🛒 Shop</button>
+    <button class="fightbtn primary" id="fight">⚔️ Fight floor <span id="fightFloor">1</span></button>
+    <button class="ghostbtn" id="flee">Flee</button>
   </div>
+</div>
 
-  <div id="ghost" style="display:none"></div>
-  <div id="scrim"></div>
-  <div id="sheet">
-    <button class="close" id="sheetClose">✕</button>
-    <div id="sheetBody"></div>
+<!-- BATTLE -->
+<div class="view" id="battleView">
+  <div class="topbar"><span class="logo">⚔️ Battle</span><span class="pill" id="battleFloor">Floor 1</span></div>
+  <div style="padding:12px; display:flex; flex-direction:column; flex:1; min-height:0">
+    <div class="fighters">
+      <div><div class="hprow"><b class="c-magic">YOU</b><span id="youhp">—</span></div>
+        <div class="hpbar"><div id="youbar" style="width:100%"></div></div></div>
+      <div><div class="hprow"><b id="foeName" style="color:#f87171">FOE</b><span id="foehp">—</span></div>
+        <div class="hpbar foe"><div id="foebar" style="width:100%"></div></div></div>
+    </div>
+    <div id="log"></div>
   </div>
-  <div class="toast" id="toast"></div>
+</div>
+
+<!-- overlays -->
+<div id="ghost" style="display:none"></div>
+<div id="scrim"></div>
+
+<div class="sheet" id="shopSheet">
+  <button class="close" id="shopClose">✕</button>
+  <h2>Shop — buy into inventory</h2>
+  <div class="hint" id="shopHint">Reroll: 2💰 · items sell back for half.</div>
+  <div id="shopList"></div>
+  <button class="buybtn" id="reroll" style="margin-top:10px">🎲 Reroll shop (2💰)</button>
+</div>
+
+<div class="sheet" id="infoSheet"><button class="close" id="infoClose">✕</button><div id="infoBody"></div></div>
+
+<div id="modal"><div class="modalbox" id="modalBox"></div></div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   AFFIX BRAWLERS — mobile-first PWA prototype
-   Touch via Pointer Events. Seeded rolls (swap for on-chain VRF).
+   AFFIX BRAWLERS — modes + inventory/shop/field + roguelike daily
+   Mobile PWA. Pointer-events drag. Seeded rolls (→ on-chain VRF).
    ============================================================ */
 const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
 
-// --- Seeded PRNG (mulberry32). In prod, seed = VRF output. ---
-function rng(seed) {
-  let s = seed >>> 0;
-  return function () {
-    s |= 0; s = (s + 0x6D2B79F5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-let GLOBAL_SEED = 1234567;
-function nextSeed() { GLOBAL_SEED = (GLOBAL_SEED * 1103515245 + 12345) & 0x7fffffff; return GLOBAL_SEED; }
+// ---- PRNG ----
+function rng(seed){ let s=seed>>>0; return function(){ s|=0; s=(s+0x6D2B79F5)|0;
+  let t=Math.imul(s^(s>>>15),1|s); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+let GLOBAL_SEED = 987654321;
+function nextSeed(){ GLOBAL_SEED=(GLOBAL_SEED*1103515245+12345)&0x7fffffff; return GLOBAL_SEED; }
+function hashStr(str){ let h=2166136261>>>0; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function todayStr(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
+function dailySeed(){ return hashStr("dungeon-"+todayStr()); }
+function mix(a,b){ return (Math.imul(a^b,2654435761)>>>0); }
 
-// --- Bases ---
+// ---- Bases / affixes / rarity ----
 const BASES = {
-  sword:    { name: "Sword",    w: 1, h: 2, slot: "weapon", dmg: 8,  cd: 1.6, icon: "🗡️" },
-  axe:      { name: "Axe",      w: 2, h: 2, slot: "weapon", dmg: 16, cd: 2.6, icon: "🪓" },
-  dagger:   { name: "Dagger",   w: 1, h: 1, slot: "weapon", dmg: 4,  cd: 0.9, icon: "🔪" },
-  shield:   { name: "Shield",   w: 2, h: 2, slot: "armor",  block: 6, cd: 2.2, icon: "🛡️" },
-  potion:   { name: "Healpot",  w: 1, h: 1, slot: "util",   heal: 10, cd: 4.0, icon: "🧪" },
-  whetstone:{ name: "Whetstone",w: 1, h: 1, slot: "synergy", icon: "🪨" },
-  gem:      { name: "Mana Gem", w: 1, h: 1, slot: "synergy", icon: "💎" },
+  sword:    { name:"Sword",    w:1,h:2, slot:"weapon", dmg:8,  cd:1.6, icon:"🗡️" },
+  axe:      { name:"Axe",      w:2,h:2, slot:"weapon", dmg:16, cd:2.6, icon:"🪓" },
+  dagger:   { name:"Dagger",   w:1,h:1, slot:"weapon", dmg:4,  cd:0.9, icon:"🔪" },
+  bow:      { name:"Bow",      w:1,h:2, slot:"weapon", dmg:6,  cd:1.2, icon:"🏹" },
+  shield:   { name:"Shield",   w:2,h:2, slot:"armor",  block:6, cd:2.2, icon:"🛡️" },
+  potion:   { name:"Healpot",  w:1,h:1, slot:"util",   heal:10, cd:4.0, icon:"🧪" },
+  whetstone:{ name:"Whetstone",w:1,h:1, slot:"synergy", icon:"🪨" },
+  gem:      { name:"Mana Gem", w:1,h:1, slot:"synergy", icon:"💎" },
 };
-
+const SHOP_KEYS = Object.keys(BASES);
 const AFFIXES = [
   { id:"flame",   label:t=>`+${t*6} fire dmg on hit`, slots:["weapon"], w:10, apply:(it,t)=>it._bonusDmg+=t*6 },
   { id:"sharp",   label:t=>`+${t*15}% damage`,        slots:["weapon"], w:12, apply:(it,t)=>it._dmgMul+=t*0.15 },
@@ -238,329 +273,417 @@ const RARITY = [
   { key:"rare",   name:"Rare",   cls:"rare",   affixes:2, tierMax:3, w:15 },
   { key:"epic",   name:"Epic",   cls:"epic",   affixes:3, tierMax:3, w:5  },
 ];
-function weightedPick(r, arr) {
-  const total = arr.reduce((s,x)=>s+x.w,0); let n = r()*total;
-  for (const x of arr) { if ((n -= x.w) <= 0) return x; } return arr[arr.length-1];
-}
+function weightedPick(r,arr){ const total=arr.reduce((s,x)=>s+x.w,0); let n=r()*total;
+  for(const x of arr){ if((n-=x.w)<=0) return x; } return arr[arr.length-1]; }
+
 let ITEM_ID = 1;
-function rollItem(baseKey, seed) {
-  const r = rng(seed); const base = BASES[baseKey]; const rarity = weightedPick(r, RARITY);
-  const item = { uid: ITEM_ID++, baseKey, base, seed,
-    rarity: rarity.key, rarityName: rarity.name, rarityCls: rarity.cls, affixes: [] };
-  const pool = AFFIXES.filter(a => a.slots.includes(base.slot)); const picked = new Set();
-  for (let i=0;i<rarity.affixes && pool.length;i++){
-    let a, guard=0; do { a = weightedPick(r, pool); } while (picked.has(a.id) && ++guard<20);
-    picked.add(a.id); const tier = 1 + Math.floor(r()*rarity.tierMax);
+// item is fully defined by (baseKey, seed) — rebuild deterministically. uid is just identity.
+function makeItem(baseKey, seed, uid){
+  const r=rng(seed), base=BASES[baseKey], rarity=weightedPick(r,RARITY);
+  const item={ uid: uid||ITEM_ID++, baseKey, base, seed, rarity:rarity.key, rarityName:rarity.name,
+    rarityCls:rarity.cls, affixes:[], pos:null };
+  const pool=AFFIXES.filter(a=>a.slots.includes(base.slot)); const picked=new Set();
+  for(let i=0;i<rarity.affixes && pool.length;i++){
+    let a,g=0; do{ a=weightedPick(r,pool);}while(picked.has(a.id)&&++g<20);
+    picked.add(a.id); const tier=1+Math.floor(r()*rarity.tierMax);
     item.affixes.push({ id:a.id, tier, label:a.label(tier), apply:a.apply });
   }
   return item;
 }
-function resolveItem(it) {
+function resolveItem(it){
   it._dmg=it.base.dmg||0; it._cd=it.base.cd||0; it._block=it.base.block||0; it._heal=it.base.heal||0;
   it._bonusDmg=0; it._dmgMul=1; it._cdMul=1; it._lifesteal=0; it._crit=0; it._thorns=0; it._maxhp=0;
-  for (const af of it.affixes) af.apply(it, af.tier); return it;
+  for(const af of it.affixes) af.apply(it,af.tier); return it;
 }
 function itemCost(it){ return {common:2,magic:3,rare:5,epic:8}[it.rarity]; }
+function sellValue(it){ return Math.ceil(itemCost(it)/2); }
 
 // ============================================================
-//  STATE / GRID
+//  PERSISTENT STATE
 // ============================================================
-const COLS = 6, ROWS = 5;
-const grid = Array.from({length:ROWS}, ()=>new Array(COLS).fill(null));
-const placed = new Map();                 // uid -> {item, r, c}
-let shopItems = [];
-let CELL = 52;                            // computed to fit viewport
-const state = { round:1, gold:10, wins:0, losses:0 };
+const COLS=6, ROWS=5;
+const grid = Array.from({length:ROWS},()=>new Array(COLS).fill(null));
+const owned = new Map(); // uid -> item (item.pos = {r,c} | null)
+let persist = { gold:15, towerBest:0, daily:{date:"", bestFloor:0, completed:false}, items:[] };
 
-function fits(item, r, c, ignoreUid=null) {
-  const { w, h } = item.base;
-  if (r<0||c<0||r+h>ROWS||c+w>COLS) return false;
-  for (let y=r;y<r+h;y++) for (let x=c;x<c+w;x++){ const occ=grid[y][x]; if (occ && occ!==ignoreUid) return false; }
-  return true;
+function save(){
+  persist.items = [...owned.values()].map(i=>({uid:i.uid,b:i.baseKey,s:i.seed,p:i.pos}));
+  try{ localStorage.setItem("affix-brawlers", JSON.stringify(persist)); }catch(e){}
 }
-const setOcc = (it,r,c,uid)=>{ for (let y=r;y<r+it.base.h;y++) for (let x=c;x<c+it.base.w;x++) grid[y][x]=uid; };
-const clearOcc = (uid)=>{ for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c]===uid) grid[r][c]=null; };
-
-// ============================================================
-//  RENDER
-// ============================================================
-const gridEl = $("#grid");
-function computeCell() {
-  const avail = Math.min(window.innerWidth, 460) - 24 /*card pad*/ - 20 /*scroll pad*/;
-  CELL = Math.max(40, Math.min(60, Math.floor((avail - (COLS-1)*4) / COLS)));
-}
-function buildGrid() {
-  computeCell();
-  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL}px)`;
-  gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${CELL}px)`;
-  gridEl.innerHTML = "";
-  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
-    const cell = document.createElement("div");
-    cell.className="cell"; cell.dataset.r=r; cell.dataset.c=c; gridEl.appendChild(cell);
-  }
-  renderPlaced();
-}
-function itemBox(item){
-  return { w: item.base.w*CELL + (item.base.w-1)*4, h: item.base.h*CELL + (item.base.h-1)*4 };
-}
-function renderPlaced() {
-  gridEl.querySelectorAll(".item").forEach(e=>e.remove());
-  for (const { item, r, c } of placed.values()) {
-    const b = itemBox(item);
-    const el = document.createElement("div");
-    el.className = `item r-${item.rarityCls}`;
-    el.style.left = (c*(CELL+4))+"px"; el.style.top = (r*(CELL+4))+"px";
-    el.style.width = b.w+"px"; el.style.height = b.h+"px";
-    el.innerHTML = `<div class="ic">${item.base.icon}</div><div class="tag c-${item.rarityCls}">${item.rarityName}</div>`;
-    el.dataset.uid = item.uid;
-    attachDrag(el, item, "grid");
-    gridEl.appendChild(el);
-  }
-}
-function renderShop() {
-  const el = $("#shop"); el.innerHTML = "";
-  shopItems.forEach(item => {
-    const card = document.createElement("div");
-    card.className = `shopcard r-${item.rarityCls}`;
-    card.innerHTML = `<div class="cost">${itemCost(item)}💰</div>
-      <div class="nm">${item.base.icon} ${item.base.name}</div>
-      <div class="af c-${item.rarityCls}">${item.rarityName} · ${item.base.w}×${item.base.h}</div>
-      ${item.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("") || `<div class="af">no affixes</div>`}`;
-    attachDrag(card, item, "shop");
-    el.appendChild(card);
-  });
-}
-function renderStats(){ $("#round").textContent=state.round; $("#gold").textContent=state.gold; $("#record").textContent=`${state.wins}/${state.losses}`; }
-
-let toastT;
-function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1400); }
-
-// ============================================================
-//  POINTER DRAG (touch + mouse, one path)
-// ============================================================
-const ghost = $("#ghost"), scroll = $("#scroll");
-let drag = null; // { item, from, startX, startY, moved }
-
-function attachDrag(el, item, from) {
-  el.addEventListener("pointerdown", (e) => {
-    if (drag) return;
-    e.preventDefault();
-    drag = { item, from, el, startX: e.clientX, startY: e.clientY, moved: false, pid: e.pointerId };
-  });
-}
-
-window.addEventListener("pointermove", (e) => {
-  if (!drag) return;
-  const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
-  if (!drag.moved && Math.hypot(dx, dy) < 8) return;         // tap threshold
-  if (!drag.moved) {                                          // begin actual drag
-    drag.moved = true;
-    document.body.classList.add("dragging"); scroll.classList.add("locked");
-    const b = itemBox(drag.item);
-    ghost.style.display = "flex"; ghost.style.width = b.w+"px"; ghost.style.height = b.h+"px";
-    ghost.textContent = drag.item.base.icon;
-    if (drag.from === "grid") drag.el.style.opacity = ".35";
-  }
-  e.preventDefault();
-  ghost.style.left = e.clientX+"px"; ghost.style.top = e.clientY+"px";
-  updateHover(e.clientX, e.clientY);
-}, { passive:false });
-
-window.addEventListener("pointerup", (e) => {
-  if (!drag) return;
-  const d = drag; drag = null;
-  document.body.classList.remove("dragging"); scroll.classList.remove("locked");
-  ghost.style.display = "none";
-  clearHover();
-  if (d.el) d.el.style.opacity = "";
-
-  if (!d.moved) { showInfo(d.item, d.from); return; }         // it was a tap
-
-  const target = cellAt(e.clientX, e.clientY);
-  const overSalvage = isOverSalvage(e.clientX, e.clientY);
-
-  if (overSalvage && d.from === "grid") {
-    clearOcc(d.item.uid); placed.delete(d.item.uid); state.gold += 1;
-    toast("Salvaged +1💰"); renderPlaced(); renderStats(); return;
-  }
-  if (!target) return;
-  const { r, c } = target;
-  if (d.from === "shop") {
-    if (state.gold < itemCost(d.item)) { toast("Not enough gold"); return; }
-    if (!fits(d.item, r, c)) { toast("Doesn't fit"); return; }
-    state.gold -= itemCost(d.item);
-    setOcc(d.item, r, c, d.item.uid); placed.set(d.item.uid, { item:d.item, r, c });
-    shopItems = shopItems.filter(s=>s.uid!==d.item.uid);
-    renderShop();
-  } else {
-    if (!fits(d.item, r, c, d.item.uid)) { toast("Doesn't fit"); return; }
-    clearOcc(d.item.uid); setOcc(d.item, r, c, d.item.uid); placed.set(d.item.uid, { item:d.item, r, c });
-  }
-  renderPlaced(); renderStats();
-}, { passive:false });
-
-window.addEventListener("pointercancel", () => {
-  if (!drag) return; drag = null;
-  document.body.classList.remove("dragging"); scroll.classList.remove("locked");
-  ghost.style.display="none"; clearHover();
-});
-
-// map a screen point to the top-left grid cell for the held item
-function cellAt(x, y) {
-  const rect = gridEl.getBoundingClientRect();
-  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return null;
-  const col = Math.floor((x - rect.left) / (CELL + 4));
-  const row = Math.floor((y - rect.top) / (CELL + 4));
-  return { r: Math.max(0, Math.min(ROWS-1, row)), c: Math.max(0, Math.min(COLS-1, col)) };
-}
-function updateHover(x, y) {
-  clearHover();
-  if (isOverSalvage(x, y) && drag.from === "grid") { $("#salvage").classList.add("hot"); return; }
-  const t = cellAt(x, y); if (!t) return;
-  const ok = fits(drag.item, t.r, t.c, drag.from==="grid"?drag.item.uid:null);
-  for (let y2=t.r; y2<t.r+drag.item.base.h && y2<ROWS; y2++)
-    for (let x2=t.c; x2<t.c+drag.item.base.w && x2<COLS; x2++) {
-      const cell = gridEl.children[y2*COLS + x2];
-      if (cell) cell.classList.add(ok ? "ok" : "bad");
+function load(){
+  try{ const raw=localStorage.getItem("affix-brawlers"); if(raw) persist=JSON.parse(raw); }catch(e){}
+  if(!persist.daily) persist.daily={date:"",bestFloor:0,completed:false};
+  if(persist.daily.date!==todayStr()) persist.daily={date:todayStr(),bestFloor:0,completed:false};
+  owned.clear(); for(let r=0;r<ROWS;r++) grid[r].fill(null);
+  let maxUid=0;
+  if(persist.items && persist.items.length){
+    for(const s of persist.items){
+      const it=makeItem(s.b, s.s, s.uid); it.pos=s.p||null; owned.set(it.uid,it);
+      maxUid=Math.max(maxUid,it.uid);
+      if(it.pos) setOcc(it,it.pos.r,it.pos.c,it.uid);
     }
+  } else {
+    // brand-new player starter kit
+    for(const k of ["sword","dagger","shield"]){ const it=makeItem(k,nextSeed()); owned.set(it.uid,it); maxUid=Math.max(maxUid,it.uid); }
+  }
+  ITEM_ID = maxUid+1;
 }
-function clearHover(){ gridEl.querySelectorAll(".cell").forEach(c=>c.classList.remove("ok","bad")); $("#salvage").classList.remove("hot"); }
-function isOverSalvage(x, y){ const r=$("#salvage").getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
+
+// grid helpers
+function fits(item,r,c,ignore){ const {w,h}=item.base; if(r<0||c<0||r+h>ROWS||c+w>COLS) return false;
+  for(let y=r;y<r+h;y++)for(let x=c;x<c+w;x++){ const o=grid[y][x]; if(o&&o!==ignore) return false; } return true; }
+function setOcc(it,r,c,uid){ for(let y=r;y<r+it.base.h;y++)for(let x=c;x<c+it.base.w;x++) grid[y][x]=uid; }
+function clearOcc(uid){ for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(grid[r][c]===uid) grid[r][c]=null; }
+const equippedItems = ()=>[...owned.values()].filter(i=>i.pos);
+const inventoryItems = ()=>[...owned.values()].filter(i=>!i.pos);
+
+// ============================================================
+//  RUN STATE
+// ============================================================
+let run = null; // { mode, floor, base, mods }
+function freshMods(){ return {dmgMul:1,cdMul:1,hpBonus:0,lifesteal:0,thorns:0,crit:0,goldMul:1}; }
+const BLESSINGS = [
+  {id:"berserk", name:"Berserk", icon:"😤", desc:"+20% weapon damage", apply:m=>m.dmgMul*=1.20},
+  {id:"fleet",   name:"Fleet",   icon:"💨", desc:"-12% all cooldowns", apply:m=>m.cdMul*=0.88},
+  {id:"fortified",name:"Fortified",icon:"❤️",desc:"+30 max HP",        apply:m=>m.hpBonus+=30},
+  {id:"vampiric",name:"Vampiric", icon:"🩸", desc:"+6% lifesteal",      apply:m=>m.lifesteal+=0.06},
+  {id:"thornmail",name:"Thornmail",icon:"🦔",desc:"+6 thorns",         apply:m=>m.thorns+=6},
+  {id:"critfocus",name:"Crit Focus",icon:"🎯",desc:"+10% crit chance", apply:m=>m.crit+=0.10},
+  {id:"midas",   name:"Midas Touch",icon:"🪙",desc:"+60% battle gold",  apply:m=>m.goldMul*=1.6},
+  {id:"giant",   name:"Giant's Might",icon:"🗿",desc:"+12% dmg & +15 HP",apply:m=>{m.dmgMul*=1.12;m.hpBonus+=15;}},
+];
+
+// ============================================================
+//  VIEWS
+// ============================================================
+function showView(id){ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.id===id)); }
+function renderHome(){
+  $("#homeGold").textContent=persist.gold;
+  $("#towerMeta").textContent = persist.towerBest>0 ? `Best floor: ${persist.towerBest}` : "Best floor: — (not climbed yet)";
+  const d=persist.daily;
+  $("#dailyMeta").textContent = d.completed ? `Today • ✅ cleared! (boss down)` :
+    (d.bestFloor>0 ? `Today • reached floor ${d.bestFloor}` : `Today • not yet attempted`);
+}
+
+// ============================================================
+//  RENDER PREP (field + inventory)
+// ============================================================
+let CELL=52;
+const gridEl=$("#grid");
+function computeCell(){ const avail=Math.min(window.innerWidth,460)-24-24;
+  CELL=Math.max(40,Math.min(58,Math.floor((avail-(COLS-1)*4)/COLS))); }
+function itemBox(it){ return { w:it.base.w*CELL+(it.base.w-1)*4, h:it.base.h*CELL+(it.base.h-1)*4 }; }
+function buildGrid(){
+  computeCell();
+  gridEl.style.gridTemplateColumns=`repeat(${COLS},${CELL}px)`;
+  gridEl.style.gridTemplateRows=`repeat(${ROWS},${CELL}px)`;
+  gridEl.innerHTML="";
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){ const cell=document.createElement("div");
+    cell.className="cell"; cell.dataset.r=r; cell.dataset.c=c; gridEl.appendChild(cell); }
+  renderField();
+}
+function renderField(){
+  gridEl.querySelectorAll(".item").forEach(e=>e.remove());
+  for(const it of equippedItems()){
+    const b=itemBox(it); const el=document.createElement("div");
+    el.className=`item r-${it.rarityCls}`;
+    el.style.left=(it.pos.c*(CELL+4))+"px"; el.style.top=(it.pos.r*(CELL+4))+"px";
+    el.style.width=b.w+"px"; el.style.height=b.h+"px";
+    el.innerHTML=`<div class="ic">${it.base.icon}</div><div class="tag c-${it.rarityCls}">${it.rarityName}</div>`;
+    el.dataset.uid=it.uid; attachDrag(el,it,"field"); gridEl.appendChild(el);
+  }
+}
+function shapeHTML(it){ return `<div class="shape" style="grid-template-columns:repeat(${it.base.w},5px)">`+
+  Array(it.base.w*it.base.h).fill('<i></i>').join("")+`</div>`; }
+function renderInventory(){
+  const el=$("#inv"); const items=inventoryItems(); el.classList.toggle("empty",items.length===0); el.innerHTML="";
+  for(const it of items){
+    const t=document.createElement("div"); t.className=`invtile r-${it.rarityCls}`; t.dataset.uid=it.uid;
+    t.innerHTML=`<div class="ic">${it.base.icon}</div>${shapeHTML(it)}<div class="nm c-${it.rarityCls}">${it.base.name}</div>`;
+    attachDrag(t,it,"inventory"); el.appendChild(t);
+  }
+}
+function renderPrep(){
+  $("#prepMode").textContent = run.mode==="tower" ? "⛰️ TOWER" : "🗝️ DUNGEON";
+  $("#prepFloor").textContent = run.floor; $("#fightFloor").textContent = run.floor;
+  $("#prepGold").textContent = persist.gold;
+  const bc=$("#prepBlessings"); bc.innerHTML="";
+  if(run.mode==="dungeon" && run._blessings) for(const b of run._blessings)
+    bc.insertAdjacentHTML("beforeend",`<span class="bchip">${b.icon} ${b.name}</span>`);
+  renderField(); renderInventory();
+}
+
+// ============================================================
+//  POINTER DRAG  (inventory/field → field cell / inventory / sell)
+// ============================================================
+const ghost=$("#ghost"); let drag=null; let scrollEl;
+function attachDrag(el,item,from){
+  el.addEventListener("pointerdown",e=>{ if(drag) return; e.preventDefault();
+    drag={item,from,el,sx:e.clientX,sy:e.clientY,moved:false}; });
+}
+window.addEventListener("pointermove",e=>{
+  if(!drag) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<8) return;
+  if(!drag.moved){ drag.moved=true; document.body.classList.add("dragging");
+    const b=itemBox(drag.item); ghost.style.display="flex"; ghost.style.width=b.w+"px"; ghost.style.height=b.h+"px";
+    ghost.textContent=drag.item.base.icon; if(drag.from==="field") drag.el.style.opacity=".35"; }
+  e.preventDefault();
+  ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
+  autoScroll(e.clientY); updateHover(e.clientX,e.clientY);
+},{passive:false});
+window.addEventListener("pointerup",e=>{
+  if(!drag) return; const d=drag; drag=null;
+  document.body.classList.remove("dragging"); ghost.style.display="none"; clearHover();
+  if(d.el) d.el.style.opacity="";
+  if(!d.moved){ showInfo(d.item,d.from); return; }
+  if(isOver($("#sellDock"),e.clientX,e.clientY)){ sellItem(d.item); return; }
+  const t=cellAt(e.clientX,e.clientY);
+  if(t){ // drop on field = equip / move
+    if(d.from==="field"){ if(!fits(d.item,t.r,t.c,d.item.uid)) return toast("Doesn't fit");
+      clearOcc(d.item.uid); d.item.pos={r:t.r,c:t.c}; setOcc(d.item,t.r,t.c,d.item.uid); }
+    else { if(!fits(d.item,t.r,t.c)) return toast("Doesn't fit");
+      d.item.pos={r:t.r,c:t.c}; setOcc(d.item,t.r,t.c,d.item.uid); }
+    save(); renderField(); renderInventory(); return;
+  }
+  if(isOver($("#inv"),e.clientX,e.clientY) && d.from==="field"){ // unequip
+    clearOcc(d.item.uid); d.item.pos=null; save(); renderField(); renderInventory(); toast("Unequipped"); return;
+  }
+},{passive:false});
+window.addEventListener("pointercancel",()=>{ if(!drag) return; drag=null;
+  document.body.classList.remove("dragging"); ghost.style.display="none"; clearHover(); });
+
+function autoScroll(y){ scrollEl=scrollEl||$("#scroll"); const r=scrollEl.getBoundingClientRect();
+  if(y<r.top+70) scrollEl.scrollTop-=14; else if(y>r.bottom-70) scrollEl.scrollTop+=14; }
+function cellAt(x,y){ const r=gridEl.getBoundingClientRect();
+  if(x<r.left||x>r.right||y<r.top||y>r.bottom) return null;
+  const col=Math.floor((x-r.left)/(CELL+4)), row=Math.floor((y-r.top)/(CELL+4));
+  return { r:Math.max(0,Math.min(ROWS-1,row)), c:Math.max(0,Math.min(COLS-1,col)) }; }
+function isOver(el,x,y){ const r=el.getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
+function updateHover(x,y){ clearHover();
+  if(isOver($("#sellDock"),x,y)){ $("#sellDock").classList.add("hot"); return; }
+  const t=cellAt(x,y); if(!t) return;
+  const ok=fits(drag.item,t.r,t.c,drag.from==="field"?drag.item.uid:null);
+  for(let yy=t.r;yy<t.r+drag.item.base.h&&yy<ROWS;yy++)for(let xx=t.c;xx<t.c+drag.item.base.w&&xx<COLS;xx++){
+    const cell=gridEl.children[yy*COLS+xx]; if(cell) cell.classList.add(ok?"ok":"bad"); } }
+function clearHover(){ gridEl.querySelectorAll(".cell").forEach(c=>c.classList.remove("ok","bad")); $("#sellDock").classList.remove("hot"); }
+
+function sellItem(it){ const v=sellValue(it); clearOcc(it.uid); owned.delete(it.uid); persist.gold+=v;
+  save(); renderField(); renderInventory(); renderPrepGold(); toast(`Sold ${it.base.icon} for ${v}💰`); }
+function renderPrepGold(){ $("#prepGold").textContent=persist.gold; }
 
 // ============================================================
 //  INFO SHEET
 // ============================================================
-function showInfo(item, from) {
-  resolveItem(item);
-  const lines = [];
-  if (item._dmg) lines.push(`Damage ${item._dmg} · cooldown ${item.base.cd}s`);
-  if (item.base.block) lines.push(`Block ${item.base.block}`);
-  if (item.base.heal) lines.push(`Heal ${item.base.heal}`);
-  if (item.baseKey==="whetstone") lines.push(`Synergy: +25% damage to adjacent weapons`);
-  if (item.baseKey==="gem") lines.push(`Synergy: −15% cooldown to adjacent items`);
-  $("#sheetBody").innerHTML =
-    `<div class="c-${item.rarityCls}" style="font-size:16px;font-weight:bold">${item.base.icon} ${item.rarityName} ${item.base.name}</div>
-     <div class="hint">${item.base.w}×${item.base.h} · ${item.base.slot} · seed ${item.seed}</div>
+function openSheet(el){ el.classList.add("open"); $("#scrim").classList.add("open"); }
+function closeSheets(){ document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open")); $("#scrim").classList.remove("open"); }
+$("#scrim").onclick=closeSheets; $("#infoClose").onclick=closeSheets; $("#shopClose").onclick=closeSheets;
+function showInfo(it,from){
+  resolveItem(it); const lines=[];
+  if(it._dmg) lines.push(`Damage ${it._dmg} · cooldown ${it.base.cd}s`);
+  if(it.base.block) lines.push(`Block ${it.base.block}`);
+  if(it.base.heal) lines.push(`Heal ${it.base.heal}`);
+  if(it.baseKey==="whetstone") lines.push("Synergy: +25% damage to adjacent weapons");
+  if(it.baseKey==="gem") lines.push("Synergy: −15% cooldown to adjacent items");
+  $("#infoBody").innerHTML=
+    `<div class="c-${it.rarityCls}" style="font-size:16px;font-weight:bold">${it.base.icon} ${it.rarityName} ${it.base.name}</div>
+     <div class="hint">${it.base.w}×${it.base.h} · ${it.base.slot} · seed ${it.seed} · sells ${sellValue(it)}💰</div>
      ${lines.map(l=>`<div>${l}</div>`).join("")}
-     ${item.affixes.map(a=>`<div class="c-${item.rarityCls}">• ${a.label}</div>`).join("")}
-     ${from==="shop"?`<div class="hint" style="margin-top:8px">Cost ${itemCost(item)}💰 — drag onto the grid to buy.</div>`:""}`;
-  $("#sheet").classList.add("open"); $("#scrim").classList.add("open");
+     ${it.affixes.map(a=>`<div class="c-${it.rarityCls}">• ${a.label}</div>`).join("")}`;
+  openSheet($("#infoSheet"));
 }
-function closeSheet(){ $("#sheet").classList.remove("open"); $("#scrim").classList.remove("open"); }
-$("#sheetClose").onclick = closeSheet; $("#scrim").onclick = closeSheet;
 
 // ============================================================
-//  SYNERGY + AUTO-BATTLE
+//  SHOP
 // ============================================================
-function adjacentUids(uid) {
-  const p = placed.get(uid); if (!p) return [];
-  const { item, r, c } = p; const set = new Set();
-  for (let y=r-1;y<=r+item.base.h;y++) for (let x=c-1;x<=c+item.base.w;x++){
-    if (y<0||x<0||y>=ROWS||x>=COLS) continue;
-    if (y>=r && y<r+item.base.h && x>=c && x<c+item.base.w) continue;
-    const occ=grid[y][x]; if (occ && occ!==uid) set.add(occ);
+let shopItems=[];
+function rollShop(){ shopItems=[]; for(let i=0;i<6;i++) shopItems.push(makeItem(SHOP_KEYS[Math.floor(rng(nextSeed())()*SHOP_KEYS.length)], nextSeed())); }
+function renderShop(){
+  const el=$("#shopList"); el.innerHTML="";
+  for(const it of shopItems){
+    const c=document.createElement("div"); c.className=`shopcard r-${it.rarityCls}`;
+    c.innerHTML=`<div class="shoprow"><div class="ic" style="font-size:20px">${it.base.icon}</div>
+        <div><div class="nm">${it.base.name}</div><div class="af c-${it.rarityCls}">${it.rarityName} · ${it.base.w}×${it.base.h}</div></div>
+        <div style="margin-left:auto">${shapeHTML(it)}</div></div>
+      ${it.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("")||`<div class="af">no affixes</div>`}
+      <button class="buybtn" data-uid="${it.uid}">Buy ${itemCost(it)}💰</button>`;
+    el.appendChild(c);
   }
-  return [...set];
+  el.querySelectorAll(".buybtn").forEach(b=>b.onclick=()=>buyItem(+b.dataset.uid));
 }
-function buildLoadout() {
-  const items = [...placed.values()].map(p=>{ resolveItem(p.item); return p.item; });
-  for (const p of placed.values()) {
-    const item = p.item, uid = item.uid;
-    if (item.baseKey==="whetstone") for (const u of adjacentUids(uid)){ const a=placed.get(u).item; if (a.base.slot==="weapon") a._dmgMul+=0.25; }
-    if (item.baseKey==="gem") for (const u of adjacentUids(uid)){ placed.get(u).item._cdMul-=0.15; }
+function buyItem(uid){
+  const it=shopItems.find(s=>s.uid===uid); if(!it) return;
+  if(persist.gold<itemCost(it)) return toast("Not enough gold");
+  persist.gold-=itemCost(it); shopItems=shopItems.filter(s=>s.uid!==uid);
+  owned.set(it.uid,it); save(); renderShop(); renderInventory(); renderPrepGold();
+  toast(`Bought ${it.base.icon} → inventory`);
+}
+$("#openShop").onclick=()=>{ renderShop(); openSheet($("#shopSheet")); };
+$("#reroll").onclick=()=>{ if(persist.gold<2) return toast("Not enough gold"); persist.gold-=2; rollShop(); renderShop(); renderPrepGold(); };
+
+// ============================================================
+//  COMBAT
+// ============================================================
+function buildLoadout(){
+  const items=equippedItems().map(it=>{ resolveItem(it); return it; });
+  // adjacency synergies
+  for(const it of items){
+    if(it.baseKey==="whetstone") for(const u of adjacentUids(it.uid)){ const a=owned.get(u); if(a&&a.base.slot==="weapon") a._dmgMul+=0.25; }
+    if(it.baseKey==="gem") for(const u of adjacentUids(it.uid)){ const a=owned.get(u); if(a) a._cdMul-=0.15; }
   }
   return items;
 }
-function buildFighter(items, name, seed) {
-  let maxhp=60; const weapons=[], utils=[]; let block=0, thorns=0;
-  for (const it of items){
-    maxhp += it._maxhp||0;
-    if (it.base.slot==="weapon") weapons.push(it);
-    else if (it.base.slot==="util") utils.push(it);
-    else if (it.base.slot==="armor"){ block += it._block||0; thorns += it._thorns||0; }
+function adjacentUids(uid){ const it=owned.get(uid); if(!it||!it.pos) return [];
+  const {r,c}=it.pos, set=new Set();
+  for(let y=r-1;y<=r+it.base.h;y++)for(let x=c-1;x<=c+it.base.w;x++){
+    if(y<0||x<0||y>=ROWS||x>=COLS) continue;
+    if(y>=r&&y<r+it.base.h&&x>=c&&x<c+it.base.w) continue;
+    const o=grid[y][x]; if(o&&o!==uid) set.add(o); }
+  return [...set]; }
+
+function buildFighter(items,name,seed,opts={}){
+  const {mods,statMul=1,hpBonus=0}=opts;
+  let maxhp=60+(mods?.hpBonus||0)+hpBonus;
+  const weapons=[],utils=[]; let block=0,thorns=(mods?.thorns||0);
+  for(const it of items){
+    maxhp+=it._maxhp||0;
+    if(it.base.slot==="weapon"){
+      it._dmgMul*=(mods?.dmgMul||1)*statMul; it._cdMul*=(mods?.cdMul||1);
+      it._lifesteal+=(mods?.lifesteal||0); it._crit+=(mods?.crit||0); weapons.push(it);
+    } else if(it.base.slot==="util"){ it._cdMul*=(mods?.cdMul||1); utils.push(it); }
+    else if(it.base.slot==="armor"){ block+=it._block||0; thorns+=it._thorns||0; }
   }
   return { name, hp:maxhp, maxhp, block, thorns, weapons, utils,
-    timers:[...weapons,...utils].map(it=>({ it, t:(it.base.cd||1)*(it._cdMul||1) })), r:rng(seed) };
+    timers:[...weapons,...utils].map(it=>({it,t:(it.base.cd||1)*(it._cdMul||1)})), r:rng(seed) };
+}
+function generateEnemy(floor,mode,base){
+  const boss = mode==="dungeon" && floor>=10;
+  const r=rng(mix(base, floor*2654435761));
+  const pool = boss ? ["axe","axe","shield","sword","bow","gem"] : ["sword","sword","dagger","shield","potion","axe","bow","whetstone","gem"];
+  const count=boss?8:Math.min(8,2+Math.floor(floor*0.6));
+  const items=[]; for(let i=0;i<count;i++){ const it=makeItem(pool[Math.floor(r()*pool.length)], Math.floor(r()*1e9)); resolveItem(it); items.push(it); }
+  const statMul=1+floor*0.05+(boss?0.45:0);
+  const hpBonus=floor*6+(boss?120:0);
+  return buildFighter(items, boss?"☠️ BOSS":"Foe", Math.floor(r()*1e9), {statMul,hpBonus});
 }
 function logLine(cls,msg){ const l=$("#log"); const d=document.createElement("div"); d.className=cls; d.textContent=msg; l.appendChild(d); l.scrollTop=l.scrollHeight; }
-function setBars(you,foe){
-  $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*100)+"%";
+function setBars(you,foe){ $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*100)+"%";
   $("#foebar").style.width=Math.max(0,foe.hp/foe.maxhp*100)+"%";
   $("#youhp").textContent=`${Math.max(0,Math.round(you.hp))}/${you.maxhp}`;
-  $("#foehp").textContent=`${Math.max(0,Math.round(foe.hp))}/${foe.maxhp}`;
-}
-async function runBattle(you, foe) {
-  $("#log").innerHTML=""; logLine("sys",`— Round ${state.round}: ${you.weapons.length} weapons vs ${foe.weapons.length} —`);
-  setBars(you,foe); let time=0; const DT=0.1, MAX=40;
+  $("#foehp").textContent=`${Math.max(0,Math.round(foe.hp))}/${foe.maxhp}`; }
+async function runBattle(you,foe,boss){
+  $("#log").innerHTML=""; $("#foeName").textContent=foe.name; $("#battleFloor").textContent="Floor "+run.floor;
+  logLine(boss?"boss":"sys",`— Floor ${run.floor}: ${you.weapons.length} weapons vs ${foe.name} —`);
+  setBars(you,foe); let time=0; const DT=0.1,MAX=45;
   function tick(self,opp,cls){
-    for (const tm of self.timers){
-      tm.t-=DT; if (tm.t>0) continue;
-      const it=tm.it; tm.t += (it.base.cd||1)*(it._cdMul||1);
-      if (it.base.slot==="util" && it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
-      let dmg=(it._dmg+it._bonusDmg)*it._dmgMul, crit="";
-      if (self.r()<(it._crit||0)){ dmg*=2; crit=" CRIT!"; }
+    for(const tm of self.timers){ tm.t-=DT; if(tm.t>0) continue; const it=tm.it; tm.t+=(it.base.cd||1)*(it._cdMul||1);
+      if(it.base.slot==="util"&&it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
+      let dmg=(it._dmg+it._bonusDmg)*it._dmgMul, crit=""; if(self.r()<(it._crit||0)){ dmg*=2; crit=" CRIT!"; }
       dmg=Math.max(1,Math.round(dmg-opp.block*0.5)); opp.hp-=dmg;
-      if (it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
-      if (opp.thorns) self.hp-=opp.thorns;
-      logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}`+(opp.thorns?` (−${opp.thorns} thorns)`:""));
-    }
+      if(it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
+      if(opp.thorns) self.hp-=opp.thorns;
+      logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}`+(opp.thorns?` (−${opp.thorns} thorns)`:"")); }
   }
-  while (time<MAX && you.hp>0 && foe.hp>0){
-    tick(you,foe,"you"); tick(foe,you,"foe"); setBars(you,foe); time+=DT;
-    if (Math.round(time*10)%3===0) await new Promise(r=>setTimeout(r,35));
-  }
+  while(time<MAX && you.hp>0 && foe.hp>0){ tick(you,foe,"you"); tick(foe,you,"foe"); setBars(you,foe); time+=DT;
+    if(Math.round(time*10)%3===0) await sleep(34); }
   setBars(you,foe);
-  const win = you.hp>foe.hp;
-  logLine("sys", win?"✅ You win!":(you.hp<=0&&foe.hp<=0?"Draw → loss":"❌ You lose."));
+  const win=you.hp>foe.hp; logLine(boss?"boss":"sys", win?"✅ Victory!":(you.hp<=0&&foe.hp<=0?"Draw → defeat":"❌ Defeated."));
   return win;
 }
-function generateAIBag(round) {
-  const r = rng(nextSeed());
-  const pool=["sword","sword","dagger","shield","potion","axe","whetstone","gem"];
-  const count=Math.min(8, 3+Math.floor(round*0.8)); const items=[];
-  for (let i=0;i<count;i++) items.push(rollItem(pool[Math.floor(r()*pool.length)], nextSeed()));
-  items.forEach(resolveItem); return items;
+
+// ============================================================
+//  MODE FLOW
+// ============================================================
+function startTower(){ run={mode:"tower",floor:1,base:nextSeed(),mods:freshMods()}; rollShop(); showView("prep"); buildGrid(); renderPrep(); }
+function startDaily(){ run={mode:"dungeon",floor:1,base:dailySeed(),mods:freshMods(),_blessings:[]}; rollShop(); showView("prep"); buildGrid(); renderPrep(); }
+$("#startTower").onclick=startTower; $("#startDaily").onclick=startDaily;
+$("#flee").onclick=()=>{ if(run.mode==="tower") persist.towerBest=Math.max(persist.towerBest,run.floor-1);
+  else persist.daily.bestFloor=Math.max(persist.daily.bestFloor,run.floor-1); save(); run=null; renderHome(); showView("home"); };
+
+async function doFight(){
+  const items=buildLoadout();
+  if(!items.some(i=>i.base.slot==="weapon")) return toast("Equip a weapon first");
+  const boss = run.mode==="dungeon" && run.floor>=10;
+  const you=buildFighter(items,"You",nextSeed(),{mods:run.mods});
+  const foe=generateEnemy(run.floor,run.mode,run.base);
+  showView("battleView");
+  const win=await runBattle(you,foe,boss);
+  await sleep(700);
+  if(win) onWin(boss); else onLoss();
+}
+$("#fight").onclick=doFight;
+
+function dropItem(boss){
+  // boss → bias toward a strong roll (try a few, keep best rarity)
+  let best=null; const tries=boss?6:1;
+  for(let i=0;i<tries;i++){ const it=makeItem(SHOP_KEYS[Math.floor(rng(nextSeed())()*SHOP_KEYS.length)], nextSeed());
+    if(!best || RARITY.findIndex(r=>r.key===it.rarity)>RARITY.findIndex(r=>r.key===best.rarity)) best=it; }
+  owned.set(best.uid,best); return best;
+}
+function onWin(boss){
+  const baseG = run.mode==="dungeon" ? (8+run.floor*4) : (4+run.floor);
+  const gold = Math.ceil(baseG*(run.mods.goldMul||1)) + (boss?60:0);
+  persist.gold+=gold;
+  let loot=null;
+  if(boss || (run.mode==="tower"&&run.floor%3===0) || (run.mode==="dungeon"&&run.floor%4===0)) loot=dropItem(boss);
+  if(run.mode==="dungeon") persist.daily.bestFloor=Math.max(persist.daily.bestFloor,run.floor);
+  else persist.towerBest=Math.max(persist.towerBest,run.floor);
+
+  if(boss){ persist.daily.completed=true; save(); summaryModal(true,gold,loot,true); return; }
+  save();
+  run.floor++;
+  if(run.mode==="dungeon") blessingModal(gold,loot);
+  else rewardModal(gold,loot,()=>{ showView("prep"); renderPrep(); });
+}
+function onLoss(){
+  if(run.mode==="tower") persist.towerBest=Math.max(persist.towerBest,run.floor-1);
+  else persist.daily.bestFloor=Math.max(persist.daily.bestFloor,run.floor-1);
+  save(); summaryModal(false,0,null,false);
+}
+
+// ---- modals ----
+const modal=$("#modal"), box=$("#modalBox");
+function openModal(html){ box.innerHTML=html; modal.classList.add("open"); }
+function closeModal(){ modal.classList.remove("open"); }
+function lootLine(loot){ return loot?`<div class="c-${loot.rarityCls}">🎁 Looted ${loot.base.icon} ${loot.rarityName} ${loot.base.name}!</div>`:""; }
+
+function rewardModal(gold,loot,next){
+  openModal(`<h3>Floor cleared!</h3><div>+${gold}💰</div>${lootLine(loot)}
+    <button class="primary" style="width:100%;margin-top:14px" id="mNext">Continue → floor ${run.floor}</button>`);
+  $("#mNext").onclick=()=>{ closeModal(); next(); };
+}
+function blessingModal(gold,loot){
+  const r=rng(mix(run.base, run.floor*40503)); const pool=[...BLESSINGS]; const choices=[];
+  for(let i=0;i<3 && pool.length;i++){ choices.push(pool.splice(Math.floor(r()*pool.length),1)[0]); }
+  openModal(`<h3>Floor cleared! +${gold}💰</h3>${lootLine(loot)}
+    <div class="hint" style="margin-top:8px">Choose a Blessing (lasts this run):</div>
+    <div class="blessings">${choices.map((b,i)=>`<button class="bcard" data-i="${i}">
+        <div class="bn">${b.icon} ${b.name}</div><div class="bd">${b.desc}</div></button>`).join("")}</div>`);
+  box.querySelectorAll(".bcard").forEach(btn=>btn.onclick=()=>{
+    const b=choices[+btn.dataset.i]; b.apply(run.mods); run._blessings.push(b);
+    closeModal(); showView("prep"); renderPrep();
+  });
+}
+function summaryModal(victory,gold,loot,bossKill){
+  const cleared = victory ? run.floor : run.floor-1;
+  const title = bossKill ? "🏆 Dungeon cleared!" : (victory ? "Run over" : "💀 Defeated");
+  openModal(`<h3>${title}</h3>
+    <div>${run.mode==="tower"?"Tower":"Dungeon"} — reached floor <b>${victory&&bossKill?10:cleared}</b></div>
+    ${bossKill?`<div>+${gold}💰 boss bounty</div>`:""}${lootLine(loot)}
+    <div class="hint" style="margin-top:8px">${run.mode==="tower"?`Best: floor ${persist.towerBest}`:`Daily best: floor ${persist.daily.bestFloor}`} · your gold &amp; loot are saved.</div>
+    <button class="primary" style="width:100%;margin-top:14px" id="mHome">Back to menu</button>`);
+  $("#mHome").onclick=()=>{ closeModal(); run=null; renderHome(); showView("home"); };
 }
 
 // ============================================================
-//  ROUND FLOW
+//  TOAST + BOOT + PWA
 // ============================================================
-function refillShop(cost) {
-  if (cost && state.gold<cost){ toast("Not enough gold"); return; }
-  if (cost) state.gold-=cost;
-  const keys=Object.keys(BASES); shopItems=[];
-  for (let i=0;i<6;i++) shopItems.push(rollItem(keys[Math.floor(rng(nextSeed())()*keys.length)], nextSeed()));
-  renderShop(); renderStats();
-}
-$("#reroll").onclick = ()=>refillShop(2);
-$("#fight").onclick = async () => {
-  const items = buildLoadout();
-  if (items.filter(i=>i.base.slot==="weapon").length===0){ toast("Place a weapon first"); return; }
-  $("#fight").disabled=true; $("#reroll").disabled=true;
-  const you=buildFighter(items,"You",nextSeed()), foe=buildFighter(generateAIBag(state.round),"Foe",nextSeed());
-  const win=await runBattle(you,foe);
-  if (win){ state.wins++; const g=4+state.round; state.gold+=g; toast(`Win! +${g}💰`); }
-  else { state.losses++; state.gold+=2; toast("Loss. +2💰"); }
-  $("#next").disabled=false; $("#reroll").disabled=false; renderStats();
-};
-$("#next").onclick = () => {
-  state.round++; state.gold+=3;
-  $("#fight").disabled=false; $("#next").disabled=true;
-  refillShop(0); toast(`Round ${state.round} · +3💰`); renderStats();
-};
+let toastT; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1400); }
+$("#resetSave").onclick=()=>{ try{ localStorage.removeItem("affix-brawlers"); }catch(e){} persist={gold:15,towerBest:0,daily:{date:"",bestFloor:0,completed:false},items:[]}; load(); renderHome(); toast("Save reset"); };
 
-// ============================================================
-//  BOOT + PWA
-// ============================================================
-let resizeT;
-window.addEventListener("resize", ()=>{ clearTimeout(resizeT); resizeT=setTimeout(buildGrid, 150); });
-buildGrid(); refillShop(0); renderStats();
-logLine("sys","Welcome! Drag items from the shop into your backpack, then Fight.");
-logLine("sys","Tip: Whetstone 🪨 buffs adjacent weapons; Mana Gem 💎 cuts cooldowns.");
+let resizeT; window.addEventListener("resize",()=>{ clearTimeout(resizeT); resizeT=setTimeout(()=>{ if($("#prep").classList.contains("active")){ buildGrid(); } },150); });
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
-}
+load(); renderHome(); showView("home");
+if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
 </html>
