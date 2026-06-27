@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
+      - main
       - claude/backpack-battle-blockchain-game-4rf34w
   workflow_dispatch:
 
