@@ -119,6 +119,16 @@
   .modecard p { margin:0 0 12px; color:var(--muted); font-size:12px; }
   .modecard .meta { color:var(--gold); font-size:12px; margin-bottom:10px; }
 
+  /* scout card */
+  #scoutCard .scoutgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px; }
+  #scoutCard .sg { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px; font-size:12px; }
+  .arche { font-size:13px; }
+  .arche.tank{color:#6aa9ff} .arche.burst{color:#f87171} .arche.dps{color:var(--gold)}
+  .foeitems { font-size:16px; margin:4px 0; }
+  .counterline { margin:2px 0; }
+  .ctr { font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); }
+  .ctr.good { color:var(--hp); border-color:var(--hp); } .ctr.bad { color:#f87171; border-color:#f87171; }
+
   /* ghost + toast + modal */
   #ghost { position:fixed; z-index:120; pointer-events:none; border-radius:8px; border:2px dashed var(--gold);
     background:rgba(245,196,81,.15); display:flex; align-items:center; justify-content:center; font-size:22px;
@@ -176,6 +186,7 @@
     <div class="bchips" id="prepBlessings"></div>
   </div>
   <div class="scroll" id="scroll">
+    <div class="card" id="scoutCard"></div>
     <div class="card">
       <h2>Equipped field — drag to arrange · tap for info</h2>
       <div class="hint" id="fieldHint">Drag items from your inventory below onto the grid. Put a Whetstone 🪨 next to weapons.</div>
@@ -246,24 +257,29 @@ function mix(a,b){ return (Math.imul(a^b,2654435761)>>>0); }
 
 // ---- Bases / affixes / rarity ----
 const BASES = {
-  sword:    { name:"Sword",    w:1,h:2, slot:"weapon", dmg:8,  cd:1.6, icon:"🗡️" },
-  axe:      { name:"Axe",      w:2,h:2, slot:"weapon", dmg:16, cd:2.6, icon:"🪓" },
-  dagger:   { name:"Dagger",   w:1,h:1, slot:"weapon", dmg:4,  cd:0.9, icon:"🔪" },
-  bow:      { name:"Bow",      w:1,h:2, slot:"weapon", dmg:6,  cd:1.2, icon:"🏹" },
-  shield:   { name:"Shield",   w:2,h:2, slot:"armor",  block:6, cd:2.2, icon:"🛡️" },
+  sword:    { name:"Sword",    w:1,h:2, slot:"weapon", dmg:8,  cd:1.6, icon:"🗡️", dtype:"phys" },
+  axe:      { name:"Axe",      w:2,h:2, slot:"weapon", dmg:16, cd:2.6, icon:"🪓", dtype:"phys" },
+  dagger:   { name:"Dagger",   w:1,h:1, slot:"weapon", dmg:4,  cd:0.9, icon:"🔪", dtype:"phys" },
+  bow:      { name:"Bow",      w:1,h:2, slot:"weapon", dmg:6,  cd:1.2, icon:"🏹", dtype:"phys" },
+  staff:    { name:"Staff",    w:1,h:2, slot:"weapon", dmg:7,  cd:1.7, icon:"🪄", dtype:"magic" },
+  shield:   { name:"Shield",   w:2,h:2, slot:"armor",  armor:6,  cd:2.2, icon:"🛡️" },
+  ward:     { name:"Ward",     w:1,h:1, slot:"armor",  resist:6, icon:"🔮" },
   potion:   { name:"Healpot",  w:1,h:1, slot:"util",   heal:10, cd:4.0, icon:"🧪" },
   whetstone:{ name:"Whetstone",w:1,h:1, slot:"synergy", icon:"🪨" },
   gem:      { name:"Mana Gem", w:1,h:1, slot:"synergy", icon:"💎" },
 };
 const SHOP_KEYS = Object.keys(BASES);
+const DTYPE = { phys:{icon:"🗡️",name:"Physical"}, magic:{icon:"🪄",name:"Magic"} };
 const AFFIXES = [
-  { id:"flame",   label:t=>`+${t*6} fire dmg on hit`, slots:["weapon"], w:10, apply:(it,t)=>it._bonusDmg+=t*6 },
+  { id:"flame",   label:t=>`+${t*6} magic dmg on hit`,slots:["weapon"], w:10, apply:(it,t)=>it._bonusDmg+=t*6 },
   { id:"sharp",   label:t=>`+${t*15}% damage`,        slots:["weapon"], w:12, apply:(it,t)=>it._dmgMul+=t*0.15 },
   { id:"swift",   label:t=>`-${t*8}% cooldown`,       slots:["weapon","armor","util"], w:10, apply:(it,t)=>it._cdMul-=t*0.08 },
   { id:"vamp",    label:t=>`${t*4}% lifesteal`,       slots:["weapon"], w:7,  apply:(it,t)=>it._lifesteal+=t*0.04 },
   { id:"crit",    label:t=>`+${t*8}% crit chance`,    slots:["weapon"], w:8,  apply:(it,t)=>it._crit+=t*0.08 },
+  { id:"pierce",  label:t=>`ignore ${t*15}% armor`,   slots:["weapon"], w:7,  apply:(it,t)=>it._pierce+=t*0.15 },
   { id:"thorns",  label:t=>`${t*3} thorns`,           slots:["armor"],  w:8,  apply:(it,t)=>it._thorns+=t*3 },
-  { id:"bulwark", label:t=>`+${t*4} block`,           slots:["armor"],  w:9,  apply:(it,t)=>it._block+=t*4 },
+  { id:"bulwark", label:t=>`+${t*4} armor`,           slots:["armor"],  w:9,  apply:(it,t)=>it._armor+=t*4 },
+  { id:"warded",  label:t=>`+${t*4} resist`,          slots:["armor"],  w:9,  apply:(it,t)=>it._resist+=t*4 },
   { id:"potent",  label:t=>`+${t*6} healing`,         slots:["util"],   w:8,  apply:(it,t)=>it._heal+=t*6 },
   { id:"vital",   label:t=>`+${t*12} max HP`,         slots:["weapon","armor","util","synergy"], w:6, apply:(it,t)=>it._maxhp+=t*12 },
 ];
@@ -291,8 +307,9 @@ function makeItem(baseKey, seed, uid){
   return item;
 }
 function resolveItem(it){
-  it._dmg=it.base.dmg||0; it._cd=it.base.cd||0; it._block=it.base.block||0; it._heal=it.base.heal||0;
-  it._bonusDmg=0; it._dmgMul=1; it._cdMul=1; it._lifesteal=0; it._crit=0; it._thorns=0; it._maxhp=0;
+  it._dmg=it.base.dmg||0; it._cd=it.base.cd||0; it._armor=it.base.armor||0; it._resist=it.base.resist||0;
+  it._heal=it.base.heal||0; it._dtype=it.base.dtype||"phys";
+  it._bonusDmg=0; it._dmgMul=1; it._cdMul=1; it._lifesteal=0; it._crit=0; it._thorns=0; it._maxhp=0; it._pierce=0;
   for(const af of it.affixes) af.apply(it,af.tier); return it;
 }
 function itemCost(it){ return {common:2,magic:3,rare:5,epic:8}[it.rarity]; }
@@ -410,7 +427,34 @@ function renderPrep(){
   const bc=$("#prepBlessings"); bc.innerHTML="";
   if(run.mode==="dungeon" && run._blessings) for(const b of run._blessings)
     bc.insertAdjacentHTML("beforeend",`<span class="bchip">${b.icon} ${b.name}</span>`);
-  renderField(); renderInventory();
+  renderField(); renderInventory(); renderScout();
+}
+function defenseTip(foe,me,fp){
+  // suggest the damage type the foe is weak to + how to survive their damage
+  const offense = foe.armor>foe.resist+3 ? "Foe is armored 🛡️ — bring 🪄 magic or armor-pierce."
+                : foe.resist>foe.armor+3 ? "Foe is warded 🔮 — bring 🗡️ physical."
+                : "Foe has balanced defenses.";
+  const defense = fp.phys>=65 ? "They hit mostly 🗡️ physical — stack 🛡️ armor."
+                : fp.magic>=65 ? "They hit mostly 🪄 magic — stack 🔮 resist."
+                : "They deal mixed damage — split armor & resist.";
+  return offense+" "+defense;
+}
+function renderScout(){
+  const el=$("#scoutCard"); const foe=run._foe; if(!foe){ el.innerHTML=""; return; }
+  const me=buildFighter(buildLoadout(),"You",1,{mods:run.mods});
+  const fp=dmgProfile(foe), mp=dmgProfile(me);
+  const yb=counters(me.archetype,foe.archetype), fb=counters(foe.archetype,me.archetype);
+  const cl = yb?'<span class="ctr good">✅ you counter (+15%)</span>' : fb?'<span class="ctr bad">⚠️ you are countered (−15%)</span>' : '<span class="ctr">even matchup</span>';
+  el.innerHTML=`<h2>🔭 Scouting — Floor ${run.floor}${foe.boss?" · ☠️ BOSS":""}</h2>
+    <div class="scoutgrid">
+      <div class="sg">YOU<br><b class="arche ${me.archetype}">${ARCH[me.archetype].icon} ${ARCH[me.archetype].name}</b>
+        <div class="hint">🗡️${mp.phys}% 🪄${mp.magic}% · 🛡️${me.armor} 🔮${me.resist} · ❤️${me.maxhp}</div></div>
+      <div class="sg">${foe.name}<br><b class="arche ${foe.archetype}">${ARCH[foe.archetype].icon} ${ARCH[foe.archetype].name}</b>
+        <div class="hint">🗡️${fp.phys}% 🪄${fp.magic}% · 🛡️${foe.armor} 🔮${foe.resist} · ❤️${foe.maxhp}</div></div>
+    </div>
+    <div class="foeitems">Their bag: ${foe.items.map(it=>it.base.icon).join(" ")}</div>
+    <div class="counterline">${cl}</div>
+    <div class="hint">${defenseTip(foe,me,fp)}</div>`;
 }
 
 // ============================================================
@@ -479,9 +523,11 @@ function closeSheets(){ document.querySelectorAll(".sheet").forEach(s=>s.classLi
 $("#scrim").onclick=closeSheets; $("#infoClose").onclick=closeSheets; $("#shopClose").onclick=closeSheets;
 function showInfo(it,from){
   resolveItem(it); const lines=[];
-  if(it._dmg) lines.push(`Damage ${it._dmg} · cooldown ${it.base.cd}s`);
-  if(it.base.block) lines.push(`Block ${it.base.block}`);
-  if(it.base.heal) lines.push(`Heal ${it.base.heal}`);
+  if(it._dmg) lines.push(`${DTYPE[it._dtype].icon} ${DTYPE[it._dtype].name} dmg ${it._dmg} · cd ${it.base.cd}s`);
+  if(it._armor) lines.push(`🛡️ Armor ${it._armor} (vs physical)`);
+  if(it._resist) lines.push(`🔮 Resist ${it._resist} (vs magic)`);
+  if(it._pierce) lines.push(`⮕ ignores ${Math.round(it._pierce*100)}% armor`);
+  if(it.base.heal) lines.push(`🧪 Heal ${it._heal}`);
   if(it.baseKey==="whetstone") lines.push("Synergy: +25% damage to adjacent weapons");
   if(it.baseKey==="gem") lines.push("Synergy: −15% cooldown to adjacent items");
   $("#infoBody").innerHTML=
@@ -540,30 +586,51 @@ function adjacentUids(uid){ const it=owned.get(uid); if(!it||!it.pos) return [];
     const o=grid[y][x]; if(o&&o!==uid) set.add(o); }
   return [...set]; }
 
+const ARCH = { tank:{icon:"🛡️",name:"Tank"}, burst:{icon:"💥",name:"Burst"}, dps:{icon:"⚔️",name:"DPS"} };
+// triangle: tank beats burst beats dps beats tank
+function counters(a,b){ return (a==="tank"&&b==="burst")||(a==="burst"&&b==="dps")||(a==="dps"&&b==="tank"); }
+function classify(f){
+  const lifesteal=f.weapons.reduce((s,it)=>s+(it._lifesteal||0),0);
+  const tank=(f.maxhp-60)+(f.armor+f.resist)*3+f.thorns*2+lifesteal*120;
+  let dpsSum=0,cdSum=0,critSum=0,n=0;
+  for(const it of f.weapons){ const cd=it.base.cd*(it._cdMul||1);
+    dpsSum+=(it._dmg+it._bonusDmg)*it._dmgMul/cd; cdSum+=cd; critSum+=(it._crit||0); n++; }
+  if(n===0) return "tank";
+  if(tank > dpsSum*6) return "tank";                     // defenses outweigh offense
+  const avgCd=cdSum/n, avgCrit=critSum/n;
+  return (avgCd>=1.5 || avgCrit>=0.16) ? "burst" : "dps"; // slow/critty => burst, fast => dps
+}
+// expected phys/magic split of a fighter's outgoing dps (for scouting)
+function dmgProfile(f){ let p=0,m=0; for(const it of f.weapons){ const cd=it.base.cd*(it._cdMul||1);
+  const base=it._dmg*it._dmgMul/cd; if(it._dtype==="magic") m+=base; else p+=base; m+=(it._bonusDmg||0)*it._dmgMul/cd; }
+  const tot=p+m||1; return { phys:Math.round(p/tot*100), magic:Math.round(m/tot*100) }; }
+
 function buildFighter(items,name,seed,opts={}){
   const {mods,statMul=1,hpBonus=0}=opts;
   let maxhp=60+(mods?.hpBonus||0)+hpBonus;
-  const weapons=[],utils=[]; let block=0,thorns=(mods?.thorns||0);
+  const weapons=[],utils=[]; let armor=0,resist=0,thorns=(mods?.thorns||0);
   for(const it of items){
     maxhp+=it._maxhp||0;
     if(it.base.slot==="weapon"){
       it._dmgMul*=(mods?.dmgMul||1)*statMul; it._cdMul*=(mods?.cdMul||1);
       it._lifesteal+=(mods?.lifesteal||0); it._crit+=(mods?.crit||0); weapons.push(it);
     } else if(it.base.slot==="util"){ it._cdMul*=(mods?.cdMul||1); utils.push(it); }
-    else if(it.base.slot==="armor"){ block+=it._block||0; thorns+=it._thorns||0; }
+    else if(it.base.slot==="armor"){ armor+=it._armor||0; resist+=it._resist||0; thorns+=it._thorns||0; }
   }
-  return { name, hp:maxhp, maxhp, block, thorns, weapons, utils,
+  const f={ name, hp:maxhp, maxhp, armor, resist, thorns, weapons, utils, items, cmod:1,
     timers:[...weapons,...utils].map(it=>({it,t:(it.base.cd||1)*(it._cdMul||1)})), r:rng(seed) };
+  f.archetype=classify(f); return f;
 }
 function generateEnemy(floor,mode,base){
   const boss = mode==="dungeon" && floor>=10;
   const r=rng(mix(base, floor*2654435761));
-  const pool = boss ? ["axe","axe","shield","sword","bow","gem"] : ["sword","sword","dagger","shield","potion","axe","bow","whetstone","gem"];
+  const pool = boss ? ["axe","axe","shield","staff","sword","bow","ward"] : ["sword","sword","dagger","shield","potion","axe","bow","staff","ward","whetstone"];
   const count=boss?8:Math.min(8,2+Math.floor(floor*0.6));
   const items=[]; for(let i=0;i<count;i++){ const it=makeItem(pool[Math.floor(r()*pool.length)], Math.floor(r()*1e9)); resolveItem(it); items.push(it); }
   const statMul=1+floor*0.05+(boss?0.45:0);
   const hpBonus=floor*6+(boss?120:0);
-  return buildFighter(items, boss?"☠️ BOSS":"Foe", Math.floor(r()*1e9), {statMul,hpBonus});
+  const f=buildFighter(items, boss?"☠️ BOSS":"Foe", Math.floor(r()*1e9), {statMul,hpBonus});
+  f.boss=boss; return f;
 }
 function logLine(cls,msg){ const l=$("#log"); const d=document.createElement("div"); d.className=cls; d.textContent=msg; l.appendChild(d); l.scrollTop=l.scrollHeight; }
 function setBars(you,foe){ $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*100)+"%";
@@ -573,12 +640,17 @@ function setBars(you,foe){ $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*
 async function runBattle(you,foe,boss){
   $("#log").innerHTML=""; $("#foeName").textContent=foe.name; $("#battleFloor").textContent="Floor "+run.floor;
   logLine(boss?"boss":"sys",`— Floor ${run.floor}: ${you.weapons.length} weapons vs ${foe.name} —`);
+  logLine("sys",`You ${ARCH[you.archetype].icon}${ARCH[you.archetype].name} vs ${ARCH[foe.archetype].icon}${ARCH[foe.archetype].name}`+(you.cmod>1?" ✅ counter +15%":foe.cmod>1?" ⚠️ countered −15%":" · even"));
   setBars(you,foe); let time=0; const DT=0.1,MAX=45;
   function tick(self,opp,cls){
     for(const tm of self.timers){ tm.t-=DT; if(tm.t>0) continue; const it=tm.it; tm.t+=(it.base.cd||1)*(it._cdMul||1);
       if(it.base.slot==="util"&&it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
-      let dmg=(it._dmg+it._bonusDmg)*it._dmgMul, crit=""; if(self.r()<(it._crit||0)){ dmg*=2; crit=" CRIT!"; }
-      dmg=Math.max(1,Math.round(dmg-opp.block*0.5)); opp.hp-=dmg;
+      const critMult=(self.r()<(it._crit||0))?2:1, crit=critMult>1?" CRIT!":"", cm=(self.cmod||1)*critMult;
+      let physRaw=(it._dtype==="magic"?0:it._dmg*it._dmgMul)*cm;
+      let magRaw =((it._dtype==="magic"?it._dmg*it._dmgMul:0)+it._bonusDmg*it._dmgMul)*cm;
+      const effArmor=opp.armor*(1-(it._pierce||0));
+      let dmg=Math.max(0,physRaw-effArmor*0.5)+Math.max(0,magRaw-opp.resist*0.5);
+      dmg=Math.max(1,Math.round(dmg)); opp.hp-=dmg;
       if(it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
       if(opp.thorns) self.hp-=opp.thorns;
       logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}`+(opp.thorns?` (−${opp.thorns} thorns)`:"")); }
@@ -593,8 +665,9 @@ async function runBattle(you,foe,boss){
 // ============================================================
 //  MODE FLOW
 // ============================================================
-function startTower(){ run={mode:"tower",floor:1,base:nextSeed(),mods:freshMods()}; rollShop(); showView("prep"); buildGrid(); renderPrep(); }
-function startDaily(){ run={mode:"dungeon",floor:1,base:dailySeed(),mods:freshMods(),_blessings:[]}; rollShop(); showView("prep"); buildGrid(); renderPrep(); }
+function enterPrep(){ run._foe=generateEnemy(run.floor,run.mode,run.base); showView("prep"); renderPrep(); }
+function startTower(){ run={mode:"tower",floor:1,base:nextSeed(),mods:freshMods()}; rollShop(); buildGrid(); enterPrep(); }
+function startDaily(){ run={mode:"dungeon",floor:1,base:dailySeed(),mods:freshMods(),_blessings:[]}; rollShop(); buildGrid(); enterPrep(); }
 $("#startTower").onclick=startTower; $("#startDaily").onclick=startDaily;
 $("#flee").onclick=()=>{ if(run.mode==="tower") persist.towerBest=Math.max(persist.towerBest,run.floor-1);
   else persist.daily.bestFloor=Math.max(persist.daily.bestFloor,run.floor-1); save(); run=null; renderHome(); showView("home"); };
@@ -602,9 +675,11 @@ $("#flee").onclick=()=>{ if(run.mode==="tower") persist.towerBest=Math.max(persi
 async function doFight(){
   const items=buildLoadout();
   if(!items.some(i=>i.base.slot==="weapon")) return toast("Equip a weapon first");
-  const boss = run.mode==="dungeon" && run.floor>=10;
   const you=buildFighter(items,"You",nextSeed(),{mods:run.mods});
-  const foe=generateEnemy(run.floor,run.mode,run.base);
+  const foe=run._foe || generateEnemy(run.floor,run.mode,run.base);
+  const boss = !!foe.boss;
+  const yb=counters(you.archetype,foe.archetype), fb=counters(foe.archetype,you.archetype);
+  you.cmod = yb?1.15:(fb?0.85:1); foe.cmod = fb?1.15:(yb?0.85:1);
   showView("battleView");
   const win=await runBattle(you,foe,boss);
   await sleep(700);
@@ -632,7 +707,7 @@ function onWin(boss){
   save();
   run.floor++;
   if(run.mode==="dungeon") blessingModal(gold,loot);
-  else rewardModal(gold,loot,()=>{ showView("prep"); renderPrep(); });
+  else rewardModal(gold,loot,enterPrep);
 }
 function onLoss(){
   if(run.mode==="tower") persist.towerBest=Math.max(persist.towerBest,run.floor-1);
@@ -660,7 +735,7 @@ function blessingModal(gold,loot){
         <div class="bn">${b.icon} ${b.name}</div><div class="bd">${b.desc}</div></button>`).join("")}</div>`);
   box.querySelectorAll(".bcard").forEach(btn=>btn.onclick=()=>{
     const b=choices[+btn.dataset.i]; b.apply(run.mods); run._blessings.push(b);
-    closeModal(); showView("prep"); renderPrep();
+    closeModal(); enterPrep();
   });
 }
 function summaryModal(victory,gold,loot,bossKill){

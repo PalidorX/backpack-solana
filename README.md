@@ -60,6 +60,18 @@ Two PvE modes selected from a home screen; gold and your item collection persist
   - **Permadeath + banked rewards**: one life; rewards scale with the floor reached; the boss is
     the jackpot.
 
+## Combat depth — solving the matchup (PvE)
+Decisions in the prep phase are meant to *be* the gameplay. Two layers:
+- **Damage types vs defenses (granular, always on):** weapons deal **physical** 🗡️ or **magic** 🪄
+  (the "flame" affix adds magic on top). **Armor** 🛡️ mitigates physical; **resistance** 🔮 mitigates
+  magic; the **pierce** affix ignores a % of armor. So you build to exploit what the enemy is weak to.
+- **Archetype triangle (soft, ±15%):** every bag is auto-classified **Tank / Burst / DPS** from its
+  stats. **Tank beats Burst beats DPS beats Tank.** Countering the foe's archetype gives a moderate
+  combat swing — readable, not coin-flippy.
+- **Scouting (PvE):** the upcoming opponent's full bag, archetype, damage split, and defenses are shown
+  in the prep screen *before* you commit, with a hint on what to bring. The Daily Dungeon's shared seed
+  makes this a solvable, competitive puzzle. (Scouting is PvE-only by design — it can't apply to PvP.)
+
 ## Core gameplay loop
 1. **Acquire** — spend currency/mats to roll an item: base type chosen, then N affixes roll
    from a weighted, tiered pool. → (later) mints a loot NFT.
