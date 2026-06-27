@@ -86,13 +86,28 @@
 
   /* Battle */
   #battleView { z-index:80; }
-  .fighters { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px; }
+  #arena { flex:0 0 auto; padding:10px 12px 4px; }
+  .side { margin-bottom:6px; }
+  .vs { text-align:center; color:var(--muted); font-size:13px; margin:2px 0; }
   .hpbar { height:16px; background:#2a1414; border-radius:4px; overflow:hidden; border:1px solid var(--line); }
   .hpbar > div { height:100%; background:var(--hp); transition:width .12s; }
   .hpbar.foe > div { background:#f87171; }
   .hprow { display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px; }
+  .bgrid { position:relative; margin:6px auto 0; background:#0c0e14; border:1px solid var(--line); border-radius:8px; }
+  .bitem { position:absolute; border-radius:5px; background:var(--panel2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .bitem .bic { font-size:15px; line-height:1; }
+  .bitem.passive { opacity:.6; }
+  .bitem.fire { box-shadow:0 0 9px 1px var(--gold); animation:firePulse .2s; z-index:2; }
+  @keyframes firePulse { 0%{transform:scale(1)} 45%{transform:scale(1.2)} 100%{transform:scale(1)} }
+  .cdbar { position:absolute; left:1px; right:1px; bottom:1px; height:3px; background:#000; border-radius:2px; overflow:hidden; }
+  .cdbar > div { height:100%; width:0%; background:var(--gold); }
+  .bitem.passive .cdbar { display:none; }
+  .popnum { position:absolute; top:24%; font-size:13px; font-weight:bold; pointer-events:none;
+    animation:rise .7s ease-out forwards; text-shadow:0 1px 2px #000; }
+  @keyframes rise { 0%{opacity:1; transform:translateY(0)} 100%{opacity:0; transform:translateY(-26px)} }
   #log { flex:1 1 auto; overflow-y:auto; font-size:11px; background:var(--panel2); border:1px solid var(--line);
-    border-radius:8px; padding:8px; margin-top:8px; }
+    border-radius:8px; padding:8px; margin:4px 12px 10px; }
   #log .you{color:var(--hp)} #log .foe{color:#f87171} #log .sys{color:var(--muted)} #log .boss{color:var(--epic);font-weight:bold}
 
   button { background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:10px;
@@ -230,16 +245,21 @@
 
 <!-- BATTLE -->
 <div class="view" id="battleView">
-  <div class="topbar"><span class="logo">⚔️ Battle</span><span class="pill" id="battleFloor">Floor 1</span></div>
-  <div style="padding:12px; display:flex; flex-direction:column; flex:1; min-height:0">
-    <div class="fighters">
-      <div><div class="hprow"><b class="c-magic">YOU</b><span id="youhp">—</span></div>
-        <div class="hpbar"><div id="youbar" style="width:100%"></div></div></div>
-      <div><div class="hprow"><b id="foeName" style="color:#f87171">FOE</b><span id="foehp">—</span></div>
-        <div class="hpbar foe"><div id="foebar" style="width:100%"></div></div></div>
+  <div class="topbar"><span class="logo">⚔️ Battle</span><span class="spacer"></span><span class="pill" id="battleFloor">Floor 1</span></div>
+  <div id="arena">
+    <div class="side">
+      <div class="hprow"><b class="c-magic" id="youArch">YOU</b><span id="youhp">—</span></div>
+      <div class="hpbar"><div id="youbar" style="width:100%"></div></div>
+      <div class="bgrid" id="youGrid"></div>
     </div>
-    <div id="log"></div>
+    <div class="vs">⚔️</div>
+    <div class="side">
+      <div class="hprow"><b style="color:#f87171" id="foeName">FOE</b><span id="foehp">—</span></div>
+      <div class="hpbar foe"><div id="foebar" style="width:100%"></div></div>
+      <div class="bgrid" id="foeGrid"></div>
+    </div>
   </div>
+  <div id="log"></div>
 </div>
 
 <!-- BLACKSMITH -->
@@ -741,17 +761,59 @@ function setBars(you,foe){ $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*
   $("#foebar").style.width=Math.max(0,foe.hp/foe.maxhp*100)+"%";
   $("#youhp").textContent=`${Math.max(0,Math.round(you.hp))}/${you.maxhp}`;
   $("#foehp").textContent=`${Math.max(0,Math.round(foe.hp))}/${foe.maxhp}`; }
+// ---- battle backpack rendering (mini grids with cooldown bars) ----
+let miniCell=28;
+function packForDisplay(items){
+  const g=Array.from({length:ROWS},()=>new Array(COLS).fill(false));
+  for(const it of items){ const w=it.base.w,h=it.base.h; let placed=false;
+    for(let r=0;r<=ROWS-h&&!placed;r++)for(let c=0;c<=COLS-w&&!placed;c++){
+      let ok=true; for(let y=r;y<r+h&&ok;y++)for(let x=c;x<c+w;x++)if(g[y][x])ok=false;
+      if(ok){ for(let y=r;y<r+h;y++)for(let x=c;x<c+w;x++)g[y][x]=true; it._dpos={r,c}; placed=true; } }
+    if(!placed) it._dpos={r:0,c:0}; }
+}
+function drawBGrid(host, fighter, useRealPos){
+  host.style.width=(COLS*miniCell+(COLS-1)*2)+"px";
+  host.style.height=(ROWS*miniCell+(ROWS-1)*2)+"px";
+  host.innerHTML="";
+  for(const it of fighter.items){
+    const dp = (useRealPos ? it.pos : it._dpos) || it._dpos || {r:0,c:0};
+    const el=document.createElement("div"); el.className=`bitem r-${it.rarityCls}`;
+    el.style.left=(dp.c*(miniCell+2))+"px"; el.style.top=(dp.r*(miniCell+2))+"px";
+    el.style.width=(it.base.w*miniCell+(it.base.w-1)*2)+"px"; el.style.height=(it.base.h*miniCell+(it.base.h-1)*2)+"px";
+    el.innerHTML=`<span class="bic">${it.base.icon}</span>`;
+    const tm=fighter.timers.find(t=>t.it===it);
+    if(tm){ const bar=document.createElement("div"); bar.className="cdbar"; const fill=document.createElement("div"); bar.appendChild(fill); el.appendChild(bar); tm.bar=fill; tm.tile=el; }
+    else el.classList.add("passive");
+    host.appendChild(el);
+  }
+  fighter.gridEl=host;
+}
+function buildArena(you,foe){
+  miniCell=Math.max(22, Math.min(34, Math.floor((Math.min(window.innerWidth,460)-44)/COLS)));
+  packForDisplay(foe.items);
+  drawBGrid($("#youGrid"), you, true);
+  drawBGrid($("#foeGrid"), foe, false);
+}
+function updateCd(fighter){ for(const tm of fighter.timers){ if(!tm.bar) continue;
+  const cd=(tm.it.base.cd||1)*(tm.it._cdMul||1); tm.bar.style.width=Math.max(0,Math.min(1,1-tm.t/cd))*100+"%"; } }
+function popNum(host,txt,color){ if(!host) return; const s=document.createElement("div"); s.className="popnum";
+  s.textContent=txt; s.style.color=color; s.style.left=(15+Math.random()*55)+"%"; host.appendChild(s); setTimeout(()=>s.remove(),700); }
+function fireFx(tm,target,txt,color){ if(tm.tile){ tm.tile.classList.add("fire"); setTimeout(()=>{ if(tm.tile) tm.tile.classList.remove("fire"); },190); } if(target) popNum(target.gridEl,txt,color); }
+
 async function runBattle(you,foe,boss){
   $("#log").innerHTML=""; $("#foeName").textContent=foe.name; $("#battleFloor").textContent="Floor "+run.floor;
-  logLine(boss?"boss":"sys",`— Floor ${run.floor}: ${you.weapons.length} weapons vs ${foe.name} —`);
-  logLine("sys",`You ${ARCH[you.archetype].icon}${ARCH[you.archetype].name} vs ${ARCH[foe.archetype].icon}${ARCH[foe.archetype].name}`+(you.cmod>1?" ✅ counter +15%":foe.cmod>1?" ⚠️ countered −15%":" · even"));
+  $("#youArch").textContent=`YOU ${ARCH[you.archetype].icon}`;
+  $("#foeName").textContent=`${foe.name} ${ARCH[foe.archetype].icon}`;
+  buildArena(you,foe);
+  logLine(boss?"boss":"sys",`— Floor ${run.floor} —`);
+  logLine("sys",`You ${ARCH[you.archetype].icon}${ARCH[you.archetype].name} vs ${ARCH[foe.archetype].icon}${ARCH[foe.archetype].name}`+(you.cmod>1?" ✅ +15%":foe.cmod>1?" ⚠️ −15%":" · even"));
   setBars(you,foe); let time=0; const DT=0.1,MAX=45;
   function tick(self,opp,cls){
     for(const tm of self.timers){ tm.t-=DT; if(tm.t>0) continue; const it=tm.it;
       tm.hits=(tm.hits||0)+1;
       const instant=it._chrono && (tm.hits%3===0);                 // Chrono Shard: every 3rd strike free
       tm.t += instant?0:(it.base.cd||1)*(it._cdMul||1);
-      if(it.base.slot==="util"&&it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
+      if(it.base.slot==="util"&&it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); fireFx(tm,self,"+"+it._heal,"#4ade80"); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
       const critMult=(self.r()<(it._crit||0))?2:1, crit=critMult>1?" CRIT!":"", cm=(self.cmod||1)*critMult;
       let physRaw=(it._dtype==="magic"?0:it._dmg*it._dmgMul)*cm;
       let magRaw =((it._dtype==="magic"?it._dmg*it._dmgMul:0)+it._bonusDmg*it._dmgMul)*cm;
@@ -761,14 +823,18 @@ async function runBattle(you,foe,boss){
       else { const effArmor=opp.armor*(1-(it._pierce||0)); dmg=Math.max(0,physRaw-effArmor*0.5)+Math.max(0,magRaw-opp.resist*0.5); }
       if(it._exec){ const frac=opp.hp/opp.maxhp; if(frac>0.75) dmg*=1.6; else if(frac<0.12) dmg=Math.max(dmg,opp.hp); } // Onyx
       dmg=Math.max(1,Math.round(dmg)); opp.hp-=dmg;
+      fireFx(tm,opp,(critMult>1?"✦":"")+"-"+dmg, critMult>1?"#f5c451":"#f87171");
       if(opp.hp<=0 && opp.cheatDeath && !opp.cheatUsed){ opp.cheatUsed=true; opp.hp=Math.round(opp.maxhp*0.25); logLine(opp===you?"you":"foe",`🩸 ${opp.name} cheats death!`); }
       if(it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
       if(opp.thorns) self.hp-=opp.thorns;
       logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}${instant?" ⏳":""}`+(opp.thorns?` (−${opp.thorns} thorns)`:"")); }
   }
-  while(time<MAX && you.hp>0 && foe.hp>0){ tick(you,foe,"you"); tick(foe,you,"foe"); setBars(you,foe); time+=DT;
-    if(Math.round(time*10)%3===0) await sleep(34); }
-  setBars(you,foe);
+  while(time<MAX && you.hp>0 && foe.hp>0){
+    tick(you,foe,"you"); tick(foe,you,"foe");
+    setBars(you,foe); updateCd(you); updateCd(foe);
+    time+=DT; await sleep(14);
+  }
+  setBars(you,foe); updateCd(you); updateCd(foe);
   const win=you.hp>foe.hp; logLine(boss?"boss":"sys", win?"✅ Victory!":(you.hp<=0&&foe.hp<=0?"Draw → defeat":"❌ Defeated."));
   return win;
 }

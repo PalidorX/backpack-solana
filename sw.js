@@ -1,6 +1,6 @@
 // Affix Brawlers service worker — offline cache for the PWA shell.
 // Bump CACHE when assets change to force an update.
-const CACHE = "affix-brawlers-v6";
+const CACHE = "affix-brawlers-v7";
 const ASSETS = [
   "./",
   "./index.html",
