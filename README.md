@@ -86,8 +86,9 @@ Decisions in the prep phase are meant to *be* the gameplay. Two layers:
   - 💀 **Executioner's Onyx** — +60% damage to foes >75% HP; executes foes <12% HP.
   - 🌈 **Prism Crystal** — mitigated by the *lower* of the foe's armor/resist (anti-counter).
   - ⏳ **Chrono Shard** — every 3rd strike is instant.
-- **Blacksmith** (home screen): socket a gem into an open slot, or destroy a socketed gem to free the
-  slot. Operates on your permanent collection (not mid-run).
+- **Blacksmith** (home screen): socket a gem into an open slot, destroy a socketed gem to free the
+  slot, or **reroll an affix** — gamble gold for a fresh random affix + tier (cost rises with each
+  reroll on that item). Operates on your permanent collection (not mid-run).
 - **Directional buffers:** Whetstone (+30% dmg) and Talisman (−18% cd) buff the item their **arrow**
   points at — tap on the field to rotate the aim. Position and orientation matter, not just adjacency.
 

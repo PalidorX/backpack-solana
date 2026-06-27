@@ -217,7 +217,7 @@
 
     <div class="modecard">
       <h3>🔨 Blacksmith</h3>
-      <p>Socket gems into your gear's open slots, or destroy a socketed gem to free the slot. Works on your permanent collection (not mid-run).</p>
+      <p>Socket gems into your gear's open slots, destroy a socketed gem to free the slot, or gamble gold to reroll an affix. Works on your permanent collection (not mid-run).</p>
       <button style="width:100%" id="openBs">Open the Blacksmith</button>
     </div>
 
@@ -300,6 +300,11 @@
       <h2>Socketed equipment</h2>
       <div class="hint">Tap an empty ◇ to socket the selected gem · tap a filled gem to destroy it (frees the slot).</div>
       <div id="bsItems"></div>
+    </div>
+    <div class="card">
+      <h2>Reroll affixes — gamble gold for a new roll</h2>
+      <div class="hint">Tap an affix to reroll it (random affix + tier). Cost rises with each reroll on that item.</div>
+      <div id="bsReroll"></div>
     </div>
   </div>
   <div class="actionbar"><button id="bsBack" style="width:100%">◀ Back to menu</button></div>
@@ -445,7 +450,8 @@ let persist = { gold:15, towerBest:0, daily:{date:"", bestFloor:0, completed:fal
 function save(){
   persist.items = [...owned.values()].map(i=> i.isGem
     ? {uid:i.uid, g:i.gemId}
-    : {uid:i.uid, b:i.baseKey, s:i.seed, p:i.pos, gems:i.gems||[], dir:i.dir||0});
+    : {uid:i.uid, b:i.baseKey, s:i.seed, p:i.pos, gems:i.gems||[], dir:i.dir||0,
+       af:(i.affixes||[]).map(a=>({id:a.id,t:a.tier})), rr:i._rerolls||0});
   try{ localStorage.setItem("affix-brawlers", JSON.stringify(persist)); }catch(e){}
 }
 function load(){
@@ -458,7 +464,8 @@ function load(){
     for(const s of persist.items){
       let it;
       if(s.g){ if(!GEMS[s.g]) continue; it=makeGem(s.g, s.uid); }
-      else { if(!BASES[s.b]) continue; it=makeItem(s.b, s.s, s.uid); it.pos=s.p||null; it.gems=s.gems||[]; it.dir=s.dir||0;
+      else { if(!BASES[s.b]) continue; it=makeItem(s.b, s.s, s.uid); it.pos=s.p||null; it.gems=s.gems||[]; it.dir=s.dir||0; it._rerolls=s.rr||0;
+        if(s.af){ it.affixes=s.af.map(o=>{ const def=AFFIXES.find(a=>a.id===o.id); return def?{id:o.id,tier:o.t,label:def.label(o.t),apply:def.apply}:null; }).filter(Boolean); }
         if(it.pos) setOcc(it,it.pos.r,it.pos.c,it.uid); }
       owned.set(it.uid,it); maxUid=Math.max(maxUid,it.uid);
     }
@@ -1082,6 +1089,28 @@ function renderBlacksmith(){
       if((it.gems||[]).length>=it.sockets) return toast("No free socket");
       it.gems.push(gem.gemId); owned.delete(bsSel); bsSel=null; save(); toast(`Socketed ${gem.base.icon}`); renderBlacksmith(); }
   });
+  // affix reroll
+  const aff=[...owned.values()].filter(i=>!i.isGem && i.affixes && i.affixes.length);
+  $("#bsReroll").innerHTML = aff.length
+    ? aff.map(it=>{ const cost=rerollCost(it);
+        return `<div class="bsrow r-${it.rarityCls}"><span>${it.base.icon} ${it.base.name} <span class="hint">(${cost}💰)</span></span>
+          <span class="socks">${it.affixes.map((a,i)=>`<button class="sockbtn" data-uid="${it.uid}" data-i="${i}">↻ ${a.label}</button>`).join("")}</span></div>`;
+      }).join("")
+    : `<span class="hint">No items with affixes yet — Magic+ items have them.</span>`;
+  $("#bsReroll").querySelectorAll(".sockbtn").forEach(b=>b.onclick=()=>rerollAffix(owned.get(+b.dataset.uid), +b.dataset.i));
+}
+function rerollCost(it){ return 5*((it._rerolls||0)+1); }
+function rerollAffix(it,index){
+  if(!it||!it.affixes[index]) return;
+  const cost=rerollCost(it);
+  if(persist.gold<cost) return toast(`Need ${cost}💰`);
+  persist.gold-=cost;
+  const r=rng(nextSeed()), rarity=RARITY.find(x=>x.key===it.rarity);
+  const pool=AFFIXES.filter(a=>a.slots.includes(it.base.slot));
+  const a=weightedPick(r,pool); const tier=1+Math.floor(r()*rarity.tierMax);
+  it.affixes[index]={ id:a.id, tier, label:a.label(tier), apply:a.apply };
+  it._rerolls=(it._rerolls||0)+1;
+  save(); toast(`Rerolled → ${a.label(tier)}`); renderBlacksmith();
 }
 function openBlacksmith(){ bsSel=null; renderBlacksmith(); showView("blacksmith"); }
 $("#openBs").onclick=openBlacksmith;
