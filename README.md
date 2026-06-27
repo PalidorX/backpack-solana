@@ -72,6 +72,22 @@ Decisions in the prep phase are meant to *be* the gameplay. Two layers:
   in the prep screen *before* you commit, with a hint on what to bring. The Daily Dungeon's shared seed
   makes this a solvable, competitive puzzle. (Scouting is PvE-only by design — it can't apply to PvP.)
 
+## Sockets, gems & directional buffs
+- **Sockets:** items roll 0–N sockets, max tied to rarity (common 0 → epic 3). Socket count is part
+  of the deterministic `(base, seed)` roll.
+- **Gems** drop from battles and appear in the shop. **Standard gems** are flat stat mods (Ruby +dmg,
+  Amethyst +crit, Emerald +lifesteal, Citrine −cd, Garnet +armor, Sapphire +resist, Diamond +HP).
+  **Rare gems** are special effects:
+  - 🩸 **Bloodgem** — +20% lifesteal; once per battle, survive a lethal blow at 25% HP.
+  - ⚡ **Stormgem** — every hit arcs for +35% bonus magic damage.
+  - 💀 **Executioner's Onyx** — +60% damage to foes >75% HP; executes foes <12% HP.
+  - 🌈 **Prism Crystal** — mitigated by the *lower* of the foe's armor/resist (anti-counter).
+  - ⏳ **Chrono Shard** — every 3rd strike is instant.
+- **Blacksmith** (home screen): socket a gem into an open slot, or destroy a socketed gem to free the
+  slot. Operates on your permanent collection (not mid-run).
+- **Directional buffers:** Whetstone (+30% dmg) and Talisman (−18% cd) buff the item their **arrow**
+  points at — tap on the field to rotate the aim. Position and orientation matter, not just adjacency.
+
 ## Core gameplay loop
 1. **Acquire** — spend currency/mats to roll an item: base type chosen, then N affixes roll
    from a weighted, tiered pool. → (later) mints a loot NFT.

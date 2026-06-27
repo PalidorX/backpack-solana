@@ -119,6 +119,23 @@
   .modecard p { margin:0 0 12px; color:var(--muted); font-size:12px; }
   .modecard .meta { color:var(--gold); font-size:12px; margin-bottom:10px; }
 
+  /* sockets + directional arrows */
+  .pips { display:flex; gap:2px; margin-top:2px; }
+  .pip { width:9px; height:9px; border-radius:50%; border:1px solid var(--line); background:#0c0e14;
+    display:inline-flex; align-items:center; justify-content:center; font-size:7px; }
+  .pip.filled { border-color:var(--epic); background:transparent; }
+  .arrow { position:absolute; top:1px; right:3px; font-size:11px; color:var(--gold); }
+
+  /* blacksmith */
+  #bsGems { display:flex; flex-wrap:wrap; gap:6px; }
+  .gemchip { font-size:11px; padding:6px 9px; }
+  .gemchip.sel { border-color:var(--gold); box-shadow:0 0 0 1px var(--gold); }
+  .bsrow { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 9px;
+    background:var(--panel2); border:1px solid var(--line); border-radius:8px; margin-bottom:6px; font-size:12px; }
+  .bsrow .socks { display:flex; gap:4px; }
+  .sockbtn { padding:4px 7px; font-size:12px; border-radius:6px; }
+  .sockbtn.filled { border-color:var(--epic); }
+
   /* scout card */
   #scoutCard .scoutgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:6px; }
   #scoutCard .sg { background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:7px; font-size:12px; }
@@ -172,6 +189,12 @@
       <button class="primary" style="width:100%" id="startDaily">Enter the Dungeon</button>
     </div>
 
+    <div class="modecard">
+      <h3>🔨 Blacksmith</h3>
+      <p>Socket gems into your gear's open slots, or destroy a socketed gem to free the slot. Works on your permanent collection (not mid-run).</p>
+      <button style="width:100%" id="openBs">Open the Blacksmith</button>
+    </div>
+
     <button class="ghostbtn" style="width:100%; color:var(--muted); font-size:11px" id="resetSave">↺ Reset save (debug)</button>
   </div>
 </div>
@@ -217,6 +240,23 @@
     </div>
     <div id="log"></div>
   </div>
+</div>
+
+<!-- BLACKSMITH -->
+<div class="view" id="blacksmith">
+  <div class="topbar"><span class="logo">🔨 Blacksmith</span><span class="spacer"></span><span class="pill">💰<b id="bsGold">0</b></span></div>
+  <div class="scroll">
+    <div class="card">
+      <h2>Gems — tap to select, then tap an empty socket below</h2>
+      <div id="bsGems"></div>
+    </div>
+    <div class="card">
+      <h2>Socketed equipment</h2>
+      <div class="hint">Tap an empty ◇ to socket the selected gem · tap a filled gem to destroy it (frees the slot).</div>
+      <div id="bsItems"></div>
+    </div>
+  </div>
+  <div class="actionbar"><button id="bsBack" style="width:100%">◀ Back to menu</button></div>
 </div>
 
 <!-- overlays -->
@@ -265,9 +305,10 @@ const BASES = {
   shield:   { name:"Shield",   w:2,h:2, slot:"armor",  armor:6,  cd:2.2, icon:"🛡️" },
   ward:     { name:"Ward",     w:1,h:1, slot:"armor",  resist:6, icon:"🔮" },
   potion:   { name:"Healpot",  w:1,h:1, slot:"util",   heal:10, cd:4.0, icon:"🧪" },
-  whetstone:{ name:"Whetstone",w:1,h:1, slot:"synergy", icon:"🪨" },
-  gem:      { name:"Mana Gem", w:1,h:1, slot:"synergy", icon:"💎" },
+  whetstone:{ name:"Whetstone",w:1,h:1, slot:"synergy", buff:"dmg", icon:"🪨" },  // directional: +30% dmg to the weapon it points at
+  talisman: { name:"Talisman", w:1,h:1, slot:"synergy", buff:"cd",  icon:"🧿" },  // directional: -18% cd to the item it points at
 };
+const DIRS = [{dx:0,dy:-1,a:"↑"},{dx:1,dy:0,a:"→"},{dx:0,dy:1,a:"↓"},{dx:-1,dy:0,a:"←"}]; // up,right,down,left
 const SHOP_KEYS = Object.keys(BASES);
 const DTYPE = { phys:{icon:"🗡️",name:"Physical"}, magic:{icon:"🪄",name:"Magic"} };
 const AFFIXES = [
@@ -284,11 +325,28 @@ const AFFIXES = [
   { id:"vital",   label:t=>`+${t*12} max HP`,         slots:["weapon","armor","util","synergy"], w:6, apply:(it,t)=>it._maxhp+=t*12 },
 ];
 const RARITY = [
-  { key:"common", name:"Common", cls:"common", affixes:0, tierMax:1, w:50 },
-  { key:"magic",  name:"Magic",  cls:"magic",  affixes:1, tierMax:2, w:30 },
-  { key:"rare",   name:"Rare",   cls:"rare",   affixes:2, tierMax:3, w:15 },
-  { key:"epic",   name:"Epic",   cls:"epic",   affixes:3, tierMax:3, w:5  },
+  { key:"common", name:"Common", cls:"common", affixes:0, tierMax:1, sockets:0, w:50 },
+  { key:"magic",  name:"Magic",  cls:"magic",  affixes:1, tierMax:2, sockets:1, w:30 },
+  { key:"rare",   name:"Rare",   cls:"rare",   affixes:2, tierMax:3, sockets:2, w:15 },
+  { key:"epic",   name:"Epic",   cls:"epic",   affixes:3, tierMax:3, sockets:3, w:5  },
 ];
+// Socketable gems. Standard = flat stat mods; rare = special effects (combat hooks).
+const GEMS = {
+  ruby:    { name:"Ruby",     icon:"🔴", rare:false, desc:"+15% damage",   apply:it=>it._dmgMul+=0.15 },
+  amethyst:{ name:"Amethyst", icon:"🟣", rare:false, desc:"+10% crit",     apply:it=>it._crit+=0.10 },
+  emerald: { name:"Emerald",  icon:"🟢", rare:false, desc:"+5% lifesteal", apply:it=>it._lifesteal+=0.05 },
+  citrine: { name:"Citrine",  icon:"🟡", rare:false, desc:"-12% cooldown", apply:it=>it._cdMul-=0.12 },
+  garnet:  { name:"Garnet",   icon:"🟤", rare:false, desc:"+6 armor",      apply:it=>it._armor+=6 },
+  sapphire:{ name:"Sapphire", icon:"🔵", rare:false, desc:"+6 resist",     apply:it=>it._resist+=6 },
+  diamond: { name:"Diamond",  icon:"💠", rare:false, desc:"+20 max HP",    apply:it=>it._maxhp+=20 },
+  bloodgem:{ name:"Bloodgem", icon:"🩸", rare:true, desc:"+20% lifesteal; once/battle survive lethal at 25% HP", apply:it=>{ it._lifesteal+=0.20; it._cheatDeath=true; } },
+  stormgem:{ name:"Stormgem", icon:"⚡", rare:true, desc:"hits arc for +35% bonus magic damage", apply:it=>{ it._arc=(it._arc||0)+0.35; } },
+  onyx:    { name:"Executioner's Onyx", icon:"💀", rare:true, desc:"+60% dmg vs foes >75% HP; execute foes <12% HP", apply:it=>{ it._exec=true; } },
+  prism:   { name:"Prism Crystal", icon:"🌈", rare:true, desc:"mitigated by the LOWER of foe armor/resist", apply:it=>{ it._prism=true; } },
+  chrono:  { name:"Chrono Shard", icon:"⏳", rare:true, desc:"every 3rd strike is instant", apply:it=>{ it._chrono=true; } },
+};
+const STD_GEMS = Object.keys(GEMS).filter(k=>!GEMS[k].rare);
+const RARE_GEMS = Object.keys(GEMS).filter(k=>GEMS[k].rare);
 function weightedPick(r,arr){ const total=arr.reduce((s,x)=>s+x.w,0); let n=r()*total;
   for(const x of arr){ if((n-=x.w)<=0) return x; } return arr[arr.length-1]; }
 
@@ -304,15 +362,30 @@ function makeItem(baseKey, seed, uid){
     picked.add(a.id); const tier=1+Math.floor(r()*rarity.tierMax);
     item.affixes.push({ id:a.id, tier, label:a.label(tier), apply:a.apply });
   }
+  // sockets rolled last so existing (baseKey,seed) items keep their affixes
+  let sockets=0; for(let i=0;i<(rarity.sockets||0);i++) if(r()<0.7) sockets++;
+  item.sockets=sockets; item.gems=[];
   return item;
 }
+function makeGem(gemId, uid){
+  const g=GEMS[gemId];
+  return { uid:uid||ITEM_ID++, isGem:true, gemId, gem:g, pos:null,
+    base:{ name:g.name, icon:g.icon, slot:"gem", w:1, h:1 },
+    rarity:g.rare?"epic":"magic", rarityName:g.rare?"Rare Gem":"Gem", rarityCls:g.rare?"epic":"magic", affixes:[] };
+}
+function pickGemId(r){ return r()<0.12 ? RARE_GEMS[Math.floor(r()*RARE_GEMS.length)]
+                                        : STD_GEMS[Math.floor(r()*STD_GEMS.length)]; }
 function resolveItem(it){
+  if(it.isGem) return it;
   it._dmg=it.base.dmg||0; it._cd=it.base.cd||0; it._armor=it.base.armor||0; it._resist=it.base.resist||0;
   it._heal=it.base.heal||0; it._dtype=it.base.dtype||"phys";
   it._bonusDmg=0; it._dmgMul=1; it._cdMul=1; it._lifesteal=0; it._crit=0; it._thorns=0; it._maxhp=0; it._pierce=0;
-  for(const af of it.affixes) af.apply(it,af.tier); return it;
+  it._arc=0; it._exec=false; it._prism=false; it._chrono=false; it._cheatDeath=false;
+  for(const af of it.affixes) af.apply(it,af.tier);
+  for(const gid of (it.gems||[])) if(GEMS[gid]) GEMS[gid].apply(it);
+  return it;
 }
-function itemCost(it){ return {common:2,magic:3,rare:5,epic:8}[it.rarity]; }
+function itemCost(it){ if(it.isGem) return it.gem.rare?10:4; return {common:2,magic:3,rare:5,epic:8}[it.rarity]; }
 function sellValue(it){ return Math.ceil(itemCost(it)/2); }
 
 // ============================================================
@@ -324,7 +397,9 @@ const owned = new Map(); // uid -> item (item.pos = {r,c} | null)
 let persist = { gold:15, towerBest:0, daily:{date:"", bestFloor:0, completed:false}, items:[] };
 
 function save(){
-  persist.items = [...owned.values()].map(i=>({uid:i.uid,b:i.baseKey,s:i.seed,p:i.pos}));
+  persist.items = [...owned.values()].map(i=> i.isGem
+    ? {uid:i.uid, g:i.gemId}
+    : {uid:i.uid, b:i.baseKey, s:i.seed, p:i.pos, gems:i.gems||[], dir:i.dir||0});
   try{ localStorage.setItem("affix-brawlers", JSON.stringify(persist)); }catch(e){}
 }
 function load(){
@@ -335,9 +410,11 @@ function load(){
   let maxUid=0;
   if(persist.items && persist.items.length){
     for(const s of persist.items){
-      const it=makeItem(s.b, s.s, s.uid); it.pos=s.p||null; owned.set(it.uid,it);
-      maxUid=Math.max(maxUid,it.uid);
-      if(it.pos) setOcc(it,it.pos.r,it.pos.c,it.uid);
+      let it;
+      if(s.g){ if(!GEMS[s.g]) continue; it=makeGem(s.g, s.uid); }
+      else { if(!BASES[s.b]) continue; it=makeItem(s.b, s.s, s.uid); it.pos=s.p||null; it.gems=s.gems||[]; it.dir=s.dir||0;
+        if(it.pos) setOcc(it,it.pos.r,it.pos.c,it.uid); }
+      owned.set(it.uid,it); maxUid=Math.max(maxUid,it.uid);
     }
   } else {
     // brand-new player starter kit
@@ -406,17 +483,21 @@ function renderField(){
     el.className=`item r-${it.rarityCls}`;
     el.style.left=(it.pos.c*(CELL+4))+"px"; el.style.top=(it.pos.r*(CELL+4))+"px";
     el.style.width=b.w+"px"; el.style.height=b.h+"px";
-    el.innerHTML=`<div class="ic">${it.base.icon}</div><div class="tag c-${it.rarityCls}">${it.rarityName}</div>`;
+    el.innerHTML=`${arrowHTML(it)}<div class="ic">${it.base.icon}</div>${pipsHTML(it)}`;
     el.dataset.uid=it.uid; attachDrag(el,it,"field"); gridEl.appendChild(el);
   }
 }
 function shapeHTML(it){ return `<div class="shape" style="grid-template-columns:repeat(${it.base.w},5px)">`+
   Array(it.base.w*it.base.h).fill('<i></i>').join("")+`</div>`; }
+function pipsHTML(it){ if(!it.sockets) return ""; let s="";
+  for(let i=0;i<it.sockets;i++){ const g=(it.gems||[])[i]; s+=g?`<span class="pip filled">${GEMS[g].icon}</span>`:`<span class="pip"></span>`; }
+  return `<div class="pips">${s}</div>`; }
+function arrowHTML(it){ return it.base.slot==="synergy"?`<div class="arrow">${DIRS[it.dir||0].a}</div>`:""; }
 function renderInventory(){
   const el=$("#inv"); const items=inventoryItems(); el.classList.toggle("empty",items.length===0); el.innerHTML="";
   for(const it of items){
     const t=document.createElement("div"); t.className=`invtile r-${it.rarityCls}`; t.dataset.uid=it.uid;
-    t.innerHTML=`<div class="ic">${it.base.icon}</div>${shapeHTML(it)}<div class="nm c-${it.rarityCls}">${it.base.name}</div>`;
+    t.innerHTML=`<div class="ic">${it.base.icon}</div>${it.isGem?'':shapeHTML(it)+pipsHTML(it)}<div class="nm c-${it.rarityCls}">${it.base.name}</div>`;
     attachDrag(t,it,"inventory"); el.appendChild(t);
   }
 }
@@ -479,10 +560,15 @@ window.addEventListener("pointerup",e=>{
   if(!drag) return; const d=drag; drag=null;
   document.body.classList.remove("dragging"); ghost.style.display="none"; clearHover();
   if(d.el) d.el.style.opacity="";
-  if(!d.moved){ showInfo(d.item,d.from); return; }
+  if(!d.moved){
+    if(d.from==="field" && d.item.base.slot==="synergy"){ d.item.dir=((d.item.dir||0)+1)%4; save(); renderField(); toast("Aim "+DIRS[d.item.dir].a); }
+    else showInfo(d.item,d.from);
+    return;
+  }
   if(isOver($("#sellDock"),e.clientX,e.clientY)){ sellItem(d.item); return; }
   const t=cellAt(e.clientX,e.clientY);
   if(t){ // drop on field = equip / move
+    if(d.item.isGem){ toast("Gems are socketed at the Blacksmith"); return; }
     if(d.from==="field"){ if(!fits(d.item,t.r,t.c,d.item.uid)) return toast("Doesn't fit");
       clearOcc(d.item.uid); d.item.pos={r:t.r,c:t.c}; setOcc(d.item,t.r,t.c,d.item.uid); }
     else { if(!fits(d.item,t.r,t.c)) return toast("Doesn't fit");
@@ -522,19 +608,27 @@ function openSheet(el){ el.classList.add("open"); $("#scrim").classList.add("ope
 function closeSheets(){ document.querySelectorAll(".sheet").forEach(s=>s.classList.remove("open")); $("#scrim").classList.remove("open"); }
 $("#scrim").onclick=closeSheets; $("#infoClose").onclick=closeSheets; $("#shopClose").onclick=closeSheets;
 function showInfo(it,from){
+  if(it.isGem){
+    $("#infoBody").innerHTML=`<div class="c-${it.rarityCls}" style="font-size:16px;font-weight:bold">${it.base.icon} ${it.rarityName}: ${it.gem.name}</div>
+      <div class="hint">socketable · sells ${sellValue(it)}💰 · socket it at the 🔨 Blacksmith</div>
+      <div class="c-${it.rarityCls}">◈ ${it.gem.desc}</div>`;
+    openSheet($("#infoSheet")); return;
+  }
   resolveItem(it); const lines=[];
   if(it._dmg) lines.push(`${DTYPE[it._dtype].icon} ${DTYPE[it._dtype].name} dmg ${it._dmg} · cd ${it.base.cd}s`);
   if(it._armor) lines.push(`🛡️ Armor ${it._armor} (vs physical)`);
   if(it._resist) lines.push(`🔮 Resist ${it._resist} (vs magic)`);
   if(it._pierce) lines.push(`⮕ ignores ${Math.round(it._pierce*100)}% armor`);
   if(it.base.heal) lines.push(`🧪 Heal ${it._heal}`);
-  if(it.baseKey==="whetstone") lines.push("Synergy: +25% damage to adjacent weapons");
-  if(it.baseKey==="gem") lines.push("Synergy: −15% cooldown to adjacent items");
+  if(it.base.slot==="synergy") lines.push(it.base.buff==="dmg"?"Directional ↗ +30% damage to the weapon it points at":"Directional ↗ −18% cooldown to the item it points at");
   $("#infoBody").innerHTML=
     `<div class="c-${it.rarityCls}" style="font-size:16px;font-weight:bold">${it.base.icon} ${it.rarityName} ${it.base.name}</div>
      <div class="hint">${it.base.w}×${it.base.h} · ${it.base.slot} · seed ${it.seed} · sells ${sellValue(it)}💰</div>
      ${lines.map(l=>`<div>${l}</div>`).join("")}
-     ${it.affixes.map(a=>`<div class="c-${it.rarityCls}">• ${a.label}</div>`).join("")}`;
+     ${it.affixes.map(a=>`<div class="c-${it.rarityCls}">• ${a.label}</div>`).join("")}
+     ${it.sockets?`<div class="hint" style="margin-top:6px">Sockets ${(it.gems||[]).length}/${it.sockets}</div>`:""}
+     ${(it.gems||[]).map(g=>`<div class="c-epic">◈ ${GEMS[g].icon} ${GEMS[g].name} — ${GEMS[g].desc}</div>`).join("")}
+     ${it.base.slot==="synergy"?`<div class="hint" style="margin-top:6px">Tap it on the field to rotate its aim.</div>`:""}`;
   openSheet($("#infoSheet"));
 }
 
@@ -542,15 +636,20 @@ function showInfo(it,from){
 //  SHOP
 // ============================================================
 let shopItems=[];
-function rollShop(){ shopItems=[]; for(let i=0;i<6;i++) shopItems.push(makeItem(SHOP_KEYS[Math.floor(rng(nextSeed())()*SHOP_KEYS.length)], nextSeed())); }
+function rollShop(){ shopItems=[]; for(let i=0;i<6;i++){ const r=rng(nextSeed());
+  if(r()<0.22) shopItems.push(makeGem(pickGemId(r)));
+  else shopItems.push(makeItem(SHOP_KEYS[Math.floor(r()*SHOP_KEYS.length)], nextSeed())); } }
 function renderShop(){
   const el=$("#shopList"); el.innerHTML="";
   for(const it of shopItems){
     const c=document.createElement("div"); c.className=`shopcard r-${it.rarityCls}`;
+    const body = it.isGem ? `<div class="af c-${it.rarityCls}">◈ ${it.gem.desc}</div>`
+      : (it.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("")||`<div class="af">no affixes</div>`)
+        + (it.sockets?`<div class="af">◇ ${it.sockets} socket${it.sockets>1?"s":""}</div>`:"");
     c.innerHTML=`<div class="shoprow"><div class="ic" style="font-size:20px">${it.base.icon}</div>
         <div><div class="nm">${it.base.name}</div><div class="af c-${it.rarityCls}">${it.rarityName} · ${it.base.w}×${it.base.h}</div></div>
         <div style="margin-left:auto">${shapeHTML(it)}</div></div>
-      ${it.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("")||`<div class="af">no affixes</div>`}
+      ${body}
       <button class="buybtn" data-uid="${it.uid}">Buy ${itemCost(it)}💰</button>`;
     el.appendChild(c);
   }
@@ -571,10 +670,14 @@ $("#reroll").onclick=()=>{ if(persist.gold<2) return toast("Not enough gold"); p
 // ============================================================
 function buildLoadout(){
   const items=equippedItems().map(it=>{ resolveItem(it); return it; });
-  // adjacency synergies
+  // directional buff synergies — a buffer affects the item its arrow points at
   for(const it of items){
-    if(it.baseKey==="whetstone") for(const u of adjacentUids(it.uid)){ const a=owned.get(u); if(a&&a.base.slot==="weapon") a._dmgMul+=0.25; }
-    if(it.baseKey==="gem") for(const u of adjacentUids(it.uid)){ const a=owned.get(u); if(a) a._cdMul-=0.15; }
+    if(it.base.slot!=="synergy" || !it.pos) continue;
+    const d=DIRS[it.dir||0], ty=it.pos.r+d.dy, tx=it.pos.c+d.dx;
+    if(ty<0||tx<0||ty>=ROWS||tx>=COLS) continue;
+    const u=grid[ty][tx]; if(!u) continue; const a=owned.get(u); if(!a) continue;
+    if(it.base.buff==="dmg" && a.base.slot==="weapon") a._dmgMul+=0.30;
+    if(it.base.buff==="cd") a._cdMul-=0.18;
   }
   return items;
 }
@@ -618,7 +721,8 @@ function buildFighter(items,name,seed,opts={}){
     else if(it.base.slot==="armor"){ armor+=it._armor||0; resist+=it._resist||0; thorns+=it._thorns||0; }
   }
   const f={ name, hp:maxhp, maxhp, armor, resist, thorns, weapons, utils, items, cmod:1,
-    timers:[...weapons,...utils].map(it=>({it,t:(it.base.cd||1)*(it._cdMul||1)})), r:rng(seed) };
+    cheatDeath: weapons.some(w=>w._cheatDeath), cheatUsed:false,
+    timers:[...weapons,...utils].map(it=>({it,t:(it.base.cd||1)*(it._cdMul||1),hits:0})), r:rng(seed) };
   f.archetype=classify(f); return f;
 }
 function generateEnemy(floor,mode,base){
@@ -643,17 +747,24 @@ async function runBattle(you,foe,boss){
   logLine("sys",`You ${ARCH[you.archetype].icon}${ARCH[you.archetype].name} vs ${ARCH[foe.archetype].icon}${ARCH[foe.archetype].name}`+(you.cmod>1?" ✅ counter +15%":foe.cmod>1?" ⚠️ countered −15%":" · even"));
   setBars(you,foe); let time=0; const DT=0.1,MAX=45;
   function tick(self,opp,cls){
-    for(const tm of self.timers){ tm.t-=DT; if(tm.t>0) continue; const it=tm.it; tm.t+=(it.base.cd||1)*(it._cdMul||1);
+    for(const tm of self.timers){ tm.t-=DT; if(tm.t>0) continue; const it=tm.it;
+      tm.hits=(tm.hits||0)+1;
+      const instant=it._chrono && (tm.hits%3===0);                 // Chrono Shard: every 3rd strike free
+      tm.t += instant?0:(it.base.cd||1)*(it._cdMul||1);
       if(it.base.slot==="util"&&it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
       const critMult=(self.r()<(it._crit||0))?2:1, crit=critMult>1?" CRIT!":"", cm=(self.cmod||1)*critMult;
       let physRaw=(it._dtype==="magic"?0:it._dmg*it._dmgMul)*cm;
       let magRaw =((it._dtype==="magic"?it._dmg*it._dmgMul:0)+it._bonusDmg*it._dmgMul)*cm;
-      const effArmor=opp.armor*(1-(it._pierce||0));
-      let dmg=Math.max(0,physRaw-effArmor*0.5)+Math.max(0,magRaw-opp.resist*0.5);
+      if(it._arc) magRaw += it._dmg*it._dmgMul*it._arc*cm;          // Stormgem: arcing magic
+      let dmg;
+      if(it._prism){ const mit=Math.min(opp.armor,opp.resist)*0.5; dmg=Math.max(0,(physRaw+magRaw)-mit); } // Prism: lower defense
+      else { const effArmor=opp.armor*(1-(it._pierce||0)); dmg=Math.max(0,physRaw-effArmor*0.5)+Math.max(0,magRaw-opp.resist*0.5); }
+      if(it._exec){ const frac=opp.hp/opp.maxhp; if(frac>0.75) dmg*=1.6; else if(frac<0.12) dmg=Math.max(dmg,opp.hp); } // Onyx
       dmg=Math.max(1,Math.round(dmg)); opp.hp-=dmg;
+      if(opp.hp<=0 && opp.cheatDeath && !opp.cheatUsed){ opp.cheatUsed=true; opp.hp=Math.round(opp.maxhp*0.25); logLine(opp===you?"you":"foe",`🩸 ${opp.name} cheats death!`); }
       if(it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
       if(opp.thorns) self.hp-=opp.thorns;
-      logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}`+(opp.thorns?` (−${opp.thorns} thorns)`:"")); }
+      logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}${instant?" ⏳":""}`+(opp.thorns?` (−${opp.thorns} thorns)`:"")); }
   }
   while(time<MAX && you.hp>0 && foe.hp>0){ tick(you,foe,"you"); tick(foe,you,"foe"); setBars(you,foe); time+=DT;
     if(Math.round(time*10)%3===0) await sleep(34); }
@@ -688,10 +799,13 @@ async function doFight(){
 $("#fight").onclick=doFight;
 
 function dropItem(boss){
-  // boss → bias toward a strong roll (try a few, keep best rarity)
+  const r=rng(nextSeed());
+  // bosses often drop a rare gem; otherwise sometimes a gem, else a (boss: best-of) item
+  if(boss && r()<0.6){ const g=makeGem(RARE_GEMS[Math.floor(r()*RARE_GEMS.length)]); owned.set(g.uid,g); return g; }
+  if(r()<0.3){ const g=makeGem(pickGemId(r)); owned.set(g.uid,g); return g; }
   let best=null; const tries=boss?6:1;
   for(let i=0;i<tries;i++){ const it=makeItem(SHOP_KEYS[Math.floor(rng(nextSeed())()*SHOP_KEYS.length)], nextSeed());
-    if(!best || RARITY.findIndex(r=>r.key===it.rarity)>RARITY.findIndex(r=>r.key===best.rarity)) best=it; }
+    if(!best || RARITY.findIndex(x=>x.key===it.rarity)>RARITY.findIndex(x=>x.key===best.rarity)) best=it; }
   owned.set(best.uid,best); return best;
 }
 function onWin(boss){
@@ -748,6 +862,39 @@ function summaryModal(victory,gold,loot,bossKill){
     <button class="primary" style="width:100%;margin-top:14px" id="mHome">Back to menu</button>`);
   $("#mHome").onclick=()=>{ closeModal(); run=null; renderHome(); showView("home"); };
 }
+
+// ============================================================
+//  BLACKSMITH — socket / destroy gems (permanent collection)
+// ============================================================
+let bsSel=null;
+function renderBlacksmith(){
+  $("#bsGold").textContent=persist.gold;
+  const gems=[...owned.values()].filter(i=>i.isGem);
+  $("#bsGems").innerHTML = gems.length
+    ? gems.map(g=>`<button class="gemchip r-${g.rarityCls} ${bsSel===g.uid?'sel':''}" data-uid="${g.uid}">${g.base.icon} ${g.gem.name}</button>`).join("")
+    : `<span class="hint">No gems yet — find them in battle or the shop.</span>`;
+  $("#bsGems").querySelectorAll(".gemchip").forEach(b=>b.onclick=()=>{ const u=+b.dataset.uid; bsSel=(bsSel===u?null:u); renderBlacksmith(); });
+  const items=[...owned.values()].filter(i=>!i.isGem && i.sockets>0);
+  $("#bsItems").innerHTML = items.length
+    ? items.map(it=>{ let pips="";
+        for(let i=0;i<it.sockets;i++){ const g=(it.gems||[])[i];
+          pips += g ? `<button class="sockbtn filled" data-uid="${it.uid}" data-i="${i}">${GEMS[g].icon}✕</button>`
+                    : `<button class="sockbtn" data-uid="${it.uid}" data-i="${i}">◇</button>`; }
+        return `<div class="bsrow r-${it.rarityCls}"><span>${it.base.icon} ${it.base.name}</span><span class="socks">${pips}</span></div>`;
+      }).join("")
+    : `<span class="hint">No socketed gear yet — Magic+ items roll sockets.</span>`;
+  $("#bsItems").querySelectorAll(".sockbtn").forEach(b=>b.onclick=()=>{
+    const it=owned.get(+b.dataset.uid); if(!it) return; const i=+b.dataset.i;
+    if((it.gems||[])[i]){ const gid=it.gems[i]; it.gems.splice(i,1); save(); toast(`Destroyed ${GEMS[gid].icon} ${GEMS[gid].name}`); renderBlacksmith(); }
+    else { if(bsSel===null) return toast("Select a gem first");
+      const gem=owned.get(bsSel); if(!gem||!gem.isGem){ bsSel=null; return renderBlacksmith(); }
+      if((it.gems||[]).length>=it.sockets) return toast("No free socket");
+      it.gems.push(gem.gemId); owned.delete(bsSel); bsSel=null; save(); toast(`Socketed ${gem.base.icon}`); renderBlacksmith(); }
+  });
+}
+function openBlacksmith(){ bsSel=null; renderBlacksmith(); showView("blacksmith"); }
+$("#openBs").onclick=openBlacksmith;
+$("#bsBack").onclick=()=>{ renderHome(); showView("home"); };
 
 // ============================================================
 //  TOAST + BOOT + PWA
