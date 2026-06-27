@@ -2,9 +2,20 @@
 
 A spatial auto-battler in the spirit of **Backpack Battles**, fused with **Diablo-style
 random affix rolls**, designed to grow into a **Solana** blockchain game. This repo starts
-as a pure HTML5 prototype — *game-first, chain-later*.
+as a **mobile-first PWA** prototype — *game-first, chain-later*.
 
-Open `index.html` in a browser. No build step, no dependencies.
+## Play it
+- **On your phone:** open the deployed URL, then use the browser menu → **Add to Home Screen**.
+  It installs as a standalone app (its own icon, no browser chrome) and works offline.
+- **On desktop:** just open `index.html` in a browser. No build step, no dependencies.
+
+### Mobile interaction
+- **Drag** an item (finger or mouse) from the shop onto the grid to buy + place it.
+- **Drag** a placed item to move it, or onto the **🗑️ salvage** zone to sell it for 1💰.
+- **Tap** any item for an info sheet (stats, affixes, seed).
+
+The whole thing is built on **Pointer Events**, so the same code path drives touch and mouse.
+It's a PWA: `manifest.webmanifest` + a service worker (`sw.js`) cache the shell for offline use.
 
 ## The pitch
 

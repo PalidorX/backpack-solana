@@ -1,0 +1,14 @@
+{
+  "name": "Affix Brawlers",
+  "short_name": "Brawlers",
+  "description": "Spatial auto-battler with Diablo-style affix rolls. A Backpack Battles x Diablo prototype.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#11131a",
+  "theme_color": "#11131a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

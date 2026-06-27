@@ -2,59 +2,77 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Affix Brawlers — prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1" />
+<meta name="theme-color" content="#11131a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Brawlers" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<title>Affix Brawlers</title>
 <style>
   :root {
-    --bg: #11131a;
-    --panel: #1b1f2b;
-    --panel2: #232838;
-    --line: #2e3548;
-    --ink: #e6e9f0;
-    --muted: #8b93a7;
-    --gold: #f5c451;
-    --hp: #4ade80;
-    --common: #9aa3b5;
-    --magic: #6aa9ff;
-    --rare: #f5c451;
-    --epic: #c084fc;
+    --bg: #11131a; --panel: #1b1f2b; --panel2: #232838; --line: #2e3548;
+    --ink: #e6e9f0; --muted: #8b93a7; --gold: #f5c451; --hp: #4ade80;
+    --common: #9aa3b5; --magic: #6aa9ff; --rare: #f5c451; --epic: #c084fc;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
   body {
-    margin: 0; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.5;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--bg); color: var(--ink); font-size: 13px; line-height: 1.45;
+    display: flex; flex-direction: column;
+    padding-top: var(--safe-t);
   }
-  h1 { font-size: 18px; margin: 0; letter-spacing: 1px; }
-  h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
-  }
-  .stats { display: flex; gap: 18px; align-items: center; }
-  .stat b { color: var(--gold); }
-  .wrap { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px; max-width: 1100px; margin: 0 auto; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .panel + .panel { margin-top: 16px; }
+  body.dragging { touch-action: none; }
 
-  /* Grid backpack */
-  #grid { display: grid; gap: 4px; user-select: none; }
-  .cell {
-    background: var(--panel2); border: 1px solid var(--line); border-radius: 6px;
-    aspect-ratio: 1; position: relative;
+  /* Top bar */
+  .topbar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line);
   }
-  .cell.hover-ok { outline: 2px solid var(--hp); }
-  .cell.hover-bad { outline: 2px solid #f87171; }
+  .topbar .logo { font-size: 15px; font-weight: bold; letter-spacing: .5px; }
+  .topbar .spacer { flex: 1; }
+  .pill { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 9px; font-size: 11px; white-space: nowrap; }
+  .pill b { color: var(--gold); }
 
-  /* Items */
+  /* Scroll area */
+  .scroll { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch; padding: 10px 12px 4px; }
+  .scroll.locked { overflow: hidden; }
+  h2 { font-size: 11px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+
+  /* Shop */
+  #shop { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .shopcard {
+    background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px; font-size: 11px; touch-action: none; position: relative;
+  }
+  .shopcard .nm { font-weight: bold; margin-bottom: 2px; font-size: 12px; }
+  .shopcard .af { color: var(--muted); font-size: 10px; }
+  .shopcard .cost { position: absolute; top: 6px; right: 8px; color: var(--gold); font-weight: bold; }
+
+  /* Grid */
+  #gridWrap { display: flex; justify-content: center; }
+  #grid { display: grid; gap: 4px; position: relative; touch-action: none; }
+  .cell { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; position: relative; }
+  .cell.ok { outline: 2px solid var(--hp); outline-offset: -2px; }
+  .cell.bad { outline: 2px solid #f87171; outline-offset: -2px; }
+
   .item {
-    position: absolute; border-radius: 6px; padding: 4px; cursor: grab;
+    position: absolute; border-radius: 8px; padding: 3px; touch-action: none;
     border: 1px solid var(--line); background: var(--panel2);
-    display: flex; flex-direction: column; gap: 2px; overflow: hidden;
-    font-size: 11px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 10px; overflow: hidden; text-align: center;
   }
-  .item.dragging { opacity: .5; }
-  .item .name { font-weight: bold; white-space: nowrap; }
-  .item .tag { color: var(--muted); font-size: 10px; }
+  .item .ic { font-size: 20px; line-height: 1; }
+  .item .tag { color: var(--muted); font-size: 9px; }
   .r-common { border-color: var(--common); }
   .r-magic { border-color: var(--magic); box-shadow: inset 0 0 0 1px var(--magic); }
   .r-rare  { border-color: var(--rare);  box-shadow: inset 0 0 0 1px var(--rare); }
@@ -62,67 +80,96 @@
   .c-common { color: var(--common); } .c-magic { color: var(--magic); }
   .c-rare { color: var(--rare); } .c-epic { color: var(--epic); }
 
-  /* Shop */
-  #shop { display: flex; flex-wrap: wrap; gap: 8px; }
-  .shopcard {
-    width: 104px; background: var(--panel2); border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px; cursor: grab; font-size: 11px;
-  }
-  .shopcard .name { font-weight: bold; margin-bottom: 2px; }
-  .shopcard .af { color: var(--muted); font-size: 10px; }
+  /* Ghost that follows the finger */
+  #ghost { position: fixed; z-index: 100; pointer-events: none; border-radius: 8px;
+    border: 2px dashed var(--gold); background: rgba(245,196,81,.12);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    transform: translate(-50%, -50%); }
 
-  button {
-    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
-    border-radius: 8px; padding: 8px 14px; cursor: pointer; font-family: inherit; font-size: 12px;
-  }
-  button:hover { border-color: var(--gold); }
-  button.primary { background: var(--gold); color: #1a1a1a; border-color: var(--gold); font-weight: bold; }
-  button:disabled { opacity: .4; cursor: not-allowed; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .spacer { flex: 1; }
+  /* Salvage zone */
+  #salvage { border: 1px dashed var(--line); border-radius: 10px; padding: 10px; text-align: center;
+    color: var(--muted); font-size: 11px; transition: all .15s; }
+  #salvage.hot { border-color: #f87171; color: #f87171; background: rgba(248,113,113,.08); }
 
   /* Battle */
-  #log { height: 220px; overflow-y: auto; font-size: 11px; background: var(--panel2);
-    border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
-  #log .you { color: var(--hp); } #log .foe { color: #f87171; } #log .sys { color: var(--muted); }
-  .hpbar { height: 16px; background: #2a1414; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
-  .hpbar > div { height: 100%; background: var(--hp); transition: width .15s; }
+  .fighters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+  .hpbar { height: 14px; background: #2a1414; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+  .hpbar > div { height: 100%; background: var(--hp); transition: width .12s; }
   .hpbar.foe > div { background: #f87171; }
-  .fighters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 10px; }
-  .tooltip {
-    position: fixed; z-index: 50; background: #0c0e14; border: 1px solid var(--gold);
-    border-radius: 8px; padding: 8px 10px; max-width: 220px; pointer-events: none;
-    font-size: 11px; box-shadow: 0 6px 18px rgba(0,0,0,.5);
+  .hprow { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+  #log { height: 130px; overflow-y: auto; font-size: 11px; background: var(--panel2);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px; margin-top: 8px; }
+  #log .you { color: var(--hp); } #log .foe { color: #f87171; } #log .sys { color: var(--muted); }
+
+  .reroll { width: 100%; margin-top: 8px; }
+  button {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px 14px; font-family: inherit; font-size: 13px;
+    cursor: pointer; touch-action: manipulation;
   }
-  .seed { color: var(--muted); font-size: 10px; }
+  button:active { transform: scale(.98); }
+  button.primary { background: var(--gold); color: #1a1a1a; border-color: var(--gold); font-weight: bold; }
+  button:disabled { opacity: .4; }
+
+  /* Sticky bottom action bar */
+  .actionbar {
+    flex: 0 0 auto; display: flex; gap: 8px; padding: 8px 12px;
+    padding-bottom: calc(8px + var(--safe-b));
+    background: var(--panel); border-top: 1px solid var(--line);
+  }
+  .actionbar button { flex: 1; }
+  .actionbar .fightbtn { flex: 2; }
+
+  /* Info sheet (bottom) */
+  #sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    background: #0c0e14; border-top: 1px solid var(--gold); border-radius: 16px 16px 0 0;
+    padding: 14px 16px calc(18px + var(--safe-b)); transform: translateY(110%);
+    transition: transform .2s ease; box-shadow: 0 -8px 24px rgba(0,0,0,.5); }
+  #sheet.open { transform: translateY(0); }
+  #sheet .close { float: right; background: none; border: none; color: var(--muted); font-size: 18px; padding: 0; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 89; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #scrim.open { opacity: 1; pointer-events: auto; }
+
+  .hint { color: var(--muted); font-size: 11px; margin: 2px 0 8px; }
+  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 56px); transform: translateX(-50%);
+    background: #0c0e14; border: 1px solid var(--gold); color: var(--gold);
+    padding: 7px 14px; border-radius: 999px; font-size: 12px; z-index: 110;
+    opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
-<header>
-  <h1>⚔️ AFFIX BRAWLERS <span class="seed">spatial auto-battler · affix-roll prototype</span></h1>
-  <div class="stats">
-    <div class="stat">Round <b id="round">1</b></div>
-    <div class="stat">Gold <b id="gold">10</b></div>
-    <div class="stat">W/L <b id="record">0/0</b></div>
+  <div class="topbar">
+    <span class="logo">⚔️ Brawlers</span>
+    <span class="spacer"></span>
+    <span class="pill">R<b id="round">1</b></span>
+    <span class="pill">💰<b id="gold">10</b></span>
+    <span class="pill"><b id="record">0/0</b></span>
   </div>
-</header>
 
-<div class="wrap">
-  <div>
-    <div class="panel">
-      <h2>Your Backpack <span class="seed">(drag items in · drag out to salvage for 1g)</span></h2>
-      <div id="grid"></div>
+  <div class="scroll" id="scroll">
+    <div class="card">
+      <h2>Shop · roll 2💰</h2>
+      <div id="shop"></div>
+      <button class="reroll" id="reroll">🎲 Reroll shop (2💰)</button>
     </div>
 
-    <div class="panel">
+    <div class="card">
+      <h2>Backpack — drag items in · tap for info</h2>
+      <div class="hint" id="hint">Drag an item from the shop onto the grid. Put a Whetstone 🪨 next to weapons.</div>
+      <div id="gridWrap"><div id="grid"></div></div>
+      <div id="salvage" style="margin-top:10px">🗑️ drag an item here to salvage (+1💰)</div>
+    </div>
+
+    <div class="card">
       <h2>Battle</h2>
       <div class="fighters">
         <div>
-          <div class="row"><b class="c-magic">YOU</b><span class="spacer"></span><span id="youhp">—</span></div>
+          <div class="hprow"><b class="c-magic">YOU</b><span id="youhp">—</span></div>
           <div class="hpbar"><div id="youbar" style="width:100%"></div></div>
         </div>
         <div>
-          <div class="row"><b style="color:#f87171">FOE</b><span class="spacer"></span><span id="foehp">—</span></div>
+          <div class="hprow"><b style="color:#f87171">FOE</b><span id="foehp">—</span></div>
           <div class="hpbar foe"><div id="foebar" style="width:100%"></div></div>
         </div>
       </div>
@@ -130,45 +177,25 @@
     </div>
   </div>
 
-  <div>
-    <div class="panel">
-      <h2>Shop <span class="seed">(roll: 2g)</span></h2>
-      <div id="shop"></div>
-      <div class="row" style="margin-top:10px">
-        <button id="reroll">🎲 Reroll shop (2g)</button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="row">
-        <button id="fight" class="primary">⚔️ Fight!</button>
-        <button id="next" disabled>Next round ▶</button>
-      </div>
-      <p class="seed" id="hint" style="margin:10px 0 0">
-        Build a bag, then fight a randomly-generated opponent. Adjacency synergies
-        (whetstone → weapons, etc.) and affix rolls decide the duel.
-      </p>
-    </div>
-
-    <div class="panel">
-      <h2>How loot rolls</h2>
-      <p class="seed" style="margin:0">
-        Each item = <b>base type</b> + random <b>affixes</b> pulled from a weighted pool,
-        tiered by rarity. The shown <code>seed</code> determines the roll — in the on-chain
-        version that seed comes from a VRF and the item mints as a compressed NFT.
-      </p>
-    </div>
+  <div class="actionbar">
+    <button class="fightbtn primary" id="fight">⚔️ Fight</button>
+    <button id="next" disabled>Next ▶</button>
   </div>
-</div>
 
-<div id="tooltip" class="tooltip" style="display:none"></div>
+  <div id="ghost" style="display:none"></div>
+  <div id="scrim"></div>
+  <div id="sheet">
+    <button class="close" id="sheetClose">✕</button>
+    <div id="sheetBody"></div>
+  </div>
+  <div class="toast" id="toast"></div>
 
 <script>
 /* ============================================================
-   AFFIX BRAWLERS — client-side prototype
-   No blockchain yet (game-first). The roll generator is seeded
-   so it can later be swapped for an on-chain VRF + cNFT mint.
+   AFFIX BRAWLERS — mobile-first PWA prototype
+   Touch via Pointer Events. Seeded rolls (swap for on-chain VRF).
    ============================================================ */
+const $ = s => document.querySelector(s);
 
 // --- Seeded PRNG (mulberry32). In prod, seed = VRF output. ---
 function rng(seed) {
@@ -183,440 +210,357 @@ function rng(seed) {
 let GLOBAL_SEED = 1234567;
 function nextSeed() { GLOBAL_SEED = (GLOBAL_SEED * 1103515245 + 12345) & 0x7fffffff; return GLOBAL_SEED; }
 
-// --- Item base types (shape = [w,h], base combat stats) ---
+// --- Bases ---
 const BASES = {
   sword:    { name: "Sword",    w: 1, h: 2, slot: "weapon", dmg: 8,  cd: 1.6, icon: "🗡️" },
   axe:      { name: "Axe",      w: 2, h: 2, slot: "weapon", dmg: 16, cd: 2.6, icon: "🪓" },
   dagger:   { name: "Dagger",   w: 1, h: 1, slot: "weapon", dmg: 4,  cd: 0.9, icon: "🔪" },
   shield:   { name: "Shield",   w: 2, h: 2, slot: "armor",  block: 6, cd: 2.2, icon: "🛡️" },
   potion:   { name: "Healpot",  w: 1, h: 1, slot: "util",   heal: 10, cd: 4.0, icon: "🧪" },
-  whetstone:{ name: "Whetstone",w: 1, h: 1, slot: "synergy", icon: "🪨" }, // buffs adjacent weapons
-  gem:      { name: "Mana Gem", w: 1, h: 1, slot: "synergy", icon: "💎" }, // buffs adjacent (cd reduce)
+  whetstone:{ name: "Whetstone",w: 1, h: 1, slot: "synergy", icon: "🪨" },
+  gem:      { name: "Mana Gem", w: 1, h: 1, slot: "synergy", icon: "💎" },
 };
 
-// --- Affix pool: weighted, tiered. value scales with tier. ---
 const AFFIXES = [
-  { id: "flame",   label: t => `+${t*6} fire dmg on hit`,     slots:["weapon"],  w: 10, apply:(it,t)=>it._bonusDmg += t*6 },
-  { id: "sharp",   label: t => `+${t*15}% damage`,            slots:["weapon"],  w: 12, apply:(it,t)=>it._dmgMul += t*0.15 },
-  { id: "swift",   label: t => `-${t*8}% cooldown`,           slots:["weapon","armor","util"], w: 10, apply:(it,t)=>it._cdMul -= t*0.08 },
-  { id: "vamp",    label: t => `${t*4}% lifesteal`,           slots:["weapon"],  w: 7,  apply:(it,t)=>it._lifesteal += t*0.04 },
-  { id: "crit",    label: t => `+${t*8}% crit chance`,        slots:["weapon"],  w: 8,  apply:(it,t)=>it._crit += t*0.08 },
-  { id: "thorns",  label: t => `${t*3} thorns`,               slots:["armor"],   w: 8,  apply:(it,t)=>it._thorns += t*3 },
-  { id: "bulwark", label: t => `+${t*4} block`,               slots:["armor"],   w: 9,  apply:(it,t)=>it._block += t*4 },
-  { id: "potent",  label: t => `+${t*6} healing`,             slots:["util"],    w: 8,  apply:(it,t)=>it._heal += t*6 },
-  { id: "vital",   label: t => `+${t*12} max HP`,             slots:["weapon","armor","util","synergy"], w: 6, apply:(it,t)=>it._maxhp += t*12 },
+  { id:"flame",   label:t=>`+${t*6} fire dmg on hit`, slots:["weapon"], w:10, apply:(it,t)=>it._bonusDmg+=t*6 },
+  { id:"sharp",   label:t=>`+${t*15}% damage`,        slots:["weapon"], w:12, apply:(it,t)=>it._dmgMul+=t*0.15 },
+  { id:"swift",   label:t=>`-${t*8}% cooldown`,       slots:["weapon","armor","util"], w:10, apply:(it,t)=>it._cdMul-=t*0.08 },
+  { id:"vamp",    label:t=>`${t*4}% lifesteal`,       slots:["weapon"], w:7,  apply:(it,t)=>it._lifesteal+=t*0.04 },
+  { id:"crit",    label:t=>`+${t*8}% crit chance`,    slots:["weapon"], w:8,  apply:(it,t)=>it._crit+=t*0.08 },
+  { id:"thorns",  label:t=>`${t*3} thorns`,           slots:["armor"],  w:8,  apply:(it,t)=>it._thorns+=t*3 },
+  { id:"bulwark", label:t=>`+${t*4} block`,           slots:["armor"],  w:9,  apply:(it,t)=>it._block+=t*4 },
+  { id:"potent",  label:t=>`+${t*6} healing`,         slots:["util"],   w:8,  apply:(it,t)=>it._heal+=t*6 },
+  { id:"vital",   label:t=>`+${t*12} max HP`,         slots:["weapon","armor","util","synergy"], w:6, apply:(it,t)=>it._maxhp+=t*12 },
 ];
-
 const RARITY = [
   { key:"common", name:"Common", cls:"common", affixes:0, tierMax:1, w:50 },
   { key:"magic",  name:"Magic",  cls:"magic",  affixes:1, tierMax:2, w:30 },
   { key:"rare",   name:"Rare",   cls:"rare",   affixes:2, tierMax:3, w:15 },
   { key:"epic",   name:"Epic",   cls:"epic",   affixes:3, tierMax:3, w:5  },
 ];
-
 function weightedPick(r, arr) {
-  const total = arr.reduce((s,x)=>s+x.w,0);
-  let n = r()*total;
-  for (const x of arr) { if ((n -= x.w) <= 0) return x; }
-  return arr[arr.length-1];
+  const total = arr.reduce((s,x)=>s+x.w,0); let n = r()*total;
+  for (const x of arr) { if ((n -= x.w) <= 0) return x; } return arr[arr.length-1];
 }
-
 let ITEM_ID = 1;
-// Roll a full item from a seed. This is the heart of the loot system.
 function rollItem(baseKey, seed) {
-  const r = rng(seed);
-  const base = BASES[baseKey];
-  const rarity = weightedPick(r, RARITY);
-  const item = {
-    uid: ITEM_ID++, baseKey, base, seed,
-    rarity: rarity.key, rarityName: rarity.name, rarityCls: rarity.cls,
-    affixes: [],
-    // resolved combat fields (filled by applyAffixes)
-  };
-  const pool = AFFIXES.filter(a => a.slots.includes(base.slot));
-  const picked = new Set();
-  for (let i = 0; i < rarity.affixes && pool.length; i++) {
-    let a; let guard = 0;
-    do { a = weightedPick(r, pool); } while (picked.has(a.id) && ++guard < 20);
-    picked.add(a.id);
-    const tier = 1 + Math.floor(r() * rarity.tierMax);
-    item.affixes.push({ id: a.id, tier, label: a.label(tier), apply: a.apply });
+  const r = rng(seed); const base = BASES[baseKey]; const rarity = weightedPick(r, RARITY);
+  const item = { uid: ITEM_ID++, baseKey, base, seed,
+    rarity: rarity.key, rarityName: rarity.name, rarityCls: rarity.cls, affixes: [] };
+  const pool = AFFIXES.filter(a => a.slots.includes(base.slot)); const picked = new Set();
+  for (let i=0;i<rarity.affixes && pool.length;i++){
+    let a, guard=0; do { a = weightedPick(r, pool); } while (picked.has(a.id) && ++guard<20);
+    picked.add(a.id); const tier = 1 + Math.floor(r()*rarity.tierMax);
+    item.affixes.push({ id:a.id, tier, label:a.label(tier), apply:a.apply });
   }
   return item;
 }
-
 function resolveItem(it) {
-  // reset resolved stats from base + affixes (synergy applied later)
-  it._dmg = it.base.dmg || 0;
-  it._cd = it.base.cd || 0;
-  it._block = it.base.block || 0;
-  it._heal = it.base.heal || 0;
-  it._bonusDmg = 0; it._dmgMul = 1; it._cdMul = 1;
-  it._lifesteal = 0; it._crit = 0; it._thorns = 0; it._maxhp = 0;
-  for (const af of it.affixes) af.apply(it, af.tier);
-  return it;
+  it._dmg=it.base.dmg||0; it._cd=it.base.cd||0; it._block=it.base.block||0; it._heal=it.base.heal||0;
+  it._bonusDmg=0; it._dmgMul=1; it._cdMul=1; it._lifesteal=0; it._crit=0; it._thorns=0; it._maxhp=0;
+  for (const af of it.affixes) af.apply(it, af.tier); return it;
 }
+function itemCost(it){ return {common:2,magic:3,rare:5,epic:8}[it.rarity]; }
 
 // ============================================================
-//  GRID / STATE
+//  STATE / GRID
 // ============================================================
 const COLS = 6, ROWS = 5;
-const grid = []; // grid[r][c] = uid or null
-for (let r=0;r<ROWS;r++){ grid.push(new Array(COLS).fill(null)); }
-const placed = new Map(); // uid -> {item, r, c}
+const grid = Array.from({length:ROWS}, ()=>new Array(COLS).fill(null));
+const placed = new Map();                 // uid -> {item, r, c}
 let shopItems = [];
-
-const state = { round: 1, gold: 10, wins: 0, losses: 0, fought: false };
-
-const $ = s => document.querySelector(s);
-const gridEl = $("#grid");
-const cellPx = 64;
+let CELL = 52;                            // computed to fit viewport
+const state = { round:1, gold:10, wins:0, losses:0 };
 
 function fits(item, r, c, ignoreUid=null) {
   const { w, h } = item.base;
-  if (r+h > ROWS || c+w > COLS) return false;
-  for (let y=r;y<r+h;y++) for (let x=c;x<c+w;x++){
-    const occ = grid[y][x];
-    if (occ && occ !== ignoreUid) return false;
-  }
+  if (r<0||c<0||r+h>ROWS||c+w>COLS) return false;
+  for (let y=r;y<r+h;y++) for (let x=c;x<c+w;x++){ const occ=grid[y][x]; if (occ && occ!==ignoreUid) return false; }
   return true;
 }
-function setOcc(item, r, c, uid) {
-  for (let y=r;y<r+item.base.h;y++) for (let x=c;x<c+item.base.w;x++) grid[y][x]=uid;
-}
-function clearOcc(uid) {
-  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c]===uid) grid[r][c]=null;
-}
+const setOcc = (it,r,c,uid)=>{ for (let y=r;y<r+it.base.h;y++) for (let x=c;x<c+it.base.w;x++) grid[y][x]=uid; };
+const clearOcc = (uid)=>{ for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) if (grid[r][c]===uid) grid[r][c]=null; };
 
 // ============================================================
 //  RENDER
 // ============================================================
+const gridEl = $("#grid");
+function computeCell() {
+  const avail = Math.min(window.innerWidth, 460) - 24 /*card pad*/ - 20 /*scroll pad*/;
+  CELL = Math.max(40, Math.min(60, Math.floor((avail - (COLS-1)*4) / COLS)));
+}
 function buildGrid() {
-  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${cellPx}px)`;
-  gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${cellPx}px)`;
+  computeCell();
+  gridEl.style.gridTemplateColumns = `repeat(${COLS}, ${CELL}px)`;
+  gridEl.style.gridTemplateRows = `repeat(${ROWS}, ${CELL}px)`;
   gridEl.innerHTML = "";
   for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++){
     const cell = document.createElement("div");
-    cell.className = "cell"; cell.dataset.r=r; cell.dataset.c=c;
-    gridEl.appendChild(cell);
+    cell.className="cell"; cell.dataset.r=r; cell.dataset.c=c; gridEl.appendChild(cell);
   }
   renderPlaced();
 }
-
+function itemBox(item){
+  return { w: item.base.w*CELL + (item.base.w-1)*4, h: item.base.h*CELL + (item.base.h-1)*4 };
+}
 function renderPlaced() {
   gridEl.querySelectorAll(".item").forEach(e=>e.remove());
   for (const { item, r, c } of placed.values()) {
+    const b = itemBox(item);
     const el = document.createElement("div");
     el.className = `item r-${item.rarityCls}`;
-    el.style.left = (c*(cellPx+4)) + "px";
-    el.style.top = (r*(cellPx+4)) + "px";
-    el.style.width = (item.base.w*cellPx + (item.base.w-1)*4) + "px";
-    el.style.height = (item.base.h*cellPx + (item.base.h-1)*4) + "px";
-    el.innerHTML = `<div class="name">${item.base.icon}</div>
-      <div class="tag c-${item.rarityCls}">${item.rarityName}</div>`;
-    el.draggable = true;
+    el.style.left = (c*(CELL+4))+"px"; el.style.top = (r*(CELL+4))+"px";
+    el.style.width = b.w+"px"; el.style.height = b.h+"px";
+    el.innerHTML = `<div class="ic">${item.base.icon}</div><div class="tag c-${item.rarityCls}">${item.rarityName}</div>`;
     el.dataset.uid = item.uid;
-    el.dataset.from = "grid";
-    wireDrag(el, item);
-    wireTooltip(el, item);
+    attachDrag(el, item, "grid");
     gridEl.appendChild(el);
   }
 }
-
 function renderShop() {
-  const shopEl = $("#shop");
-  shopEl.innerHTML = "";
+  const el = $("#shop"); el.innerHTML = "";
   shopItems.forEach(item => {
     const card = document.createElement("div");
     card.className = `shopcard r-${item.rarityCls}`;
-    card.draggable = true;
-    card.dataset.uid = item.uid; card.dataset.from = "shop";
-    card.innerHTML = `<div class="name">${item.base.icon} ${item.base.name}</div>
-      <div class="tag c-${item.rarityCls}">${item.rarityName} · ${item.base.slot}</div>
-      ${item.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("") || `<div class="af">no affixes</div>`}
-      <div class="af" style="margin-top:4px">cost: ${itemCost(item)}g</div>`;
-    wireDrag(card, item);
-    wireTooltip(card, item);
-    shopEl.appendChild(card);
+    card.innerHTML = `<div class="cost">${itemCost(item)}💰</div>
+      <div class="nm">${item.base.icon} ${item.base.name}</div>
+      <div class="af c-${item.rarityCls}">${item.rarityName} · ${item.base.w}×${item.base.h}</div>
+      ${item.affixes.map(a=>`<div class="af">• ${a.label}</div>`).join("") || `<div class="af">no affixes</div>`}`;
+    attachDrag(card, item, "shop");
+    el.appendChild(card);
   });
 }
+function renderStats(){ $("#round").textContent=state.round; $("#gold").textContent=state.gold; $("#record").textContent=`${state.wins}/${state.losses}`; }
 
-function itemCost(item) {
-  return { common:2, magic:3, rare:5, epic:8 }[item.rarity];
-}
-
-function renderStats() {
-  $("#round").textContent = state.round;
-  $("#gold").textContent = state.gold;
-  $("#record").textContent = `${state.wins}/${state.losses}`;
-}
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1400); }
 
 // ============================================================
-//  DRAG & DROP
+//  POINTER DRAG (touch + mouse, one path)
 // ============================================================
-let dragItem = null, dragFrom = null;
-function wireDrag(el, item) {
-  el.addEventListener("dragstart", e => {
-    dragItem = item; dragFrom = el.dataset.from; el.classList.add("dragging");
-    e.dataTransfer.setData("text/plain", item.uid);
-  });
-  el.addEventListener("dragend", () => {
-    el.classList.remove("dragging");
-    gridEl.querySelectorAll(".cell").forEach(c=>c.classList.remove("hover-ok","hover-bad"));
+const ghost = $("#ghost"), scroll = $("#scroll");
+let drag = null; // { item, from, startX, startY, moved }
+
+function attachDrag(el, item, from) {
+  el.addEventListener("pointerdown", (e) => {
+    if (drag) return;
+    e.preventDefault();
+    drag = { item, from, el, startX: e.clientX, startY: e.clientY, moved: false, pid: e.pointerId };
   });
 }
 
-gridEl.addEventListener("dragover", e => {
+window.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
+  if (!drag.moved && Math.hypot(dx, dy) < 8) return;         // tap threshold
+  if (!drag.moved) {                                          // begin actual drag
+    drag.moved = true;
+    document.body.classList.add("dragging"); scroll.classList.add("locked");
+    const b = itemBox(drag.item);
+    ghost.style.display = "flex"; ghost.style.width = b.w+"px"; ghost.style.height = b.h+"px";
+    ghost.textContent = drag.item.base.icon;
+    if (drag.from === "grid") drag.el.style.opacity = ".35";
+  }
   e.preventDefault();
-  if (!dragItem) return;
-  const cell = e.target.closest(".cell");
-  gridEl.querySelectorAll(".cell").forEach(c=>c.classList.remove("hover-ok","hover-bad"));
-  if (!cell) return;
-  const r=+cell.dataset.r, c=+cell.dataset.c;
-  const ok = fits(dragItem, r, c, dragFrom==="grid"?dragItem.uid:null);
-  cell.classList.add(ok?"hover-ok":"hover-bad");
-});
+  ghost.style.left = e.clientX+"px"; ghost.style.top = e.clientY+"px";
+  updateHover(e.clientX, e.clientY);
+}, { passive:false });
 
-gridEl.addEventListener("drop", e => {
-  e.preventDefault();
-  if (!dragItem) return;
-  const cell = e.target.closest(".cell");
-  if (!cell) return;
-  const r=+cell.dataset.r, c=+cell.dataset.c;
+window.addEventListener("pointerup", (e) => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  document.body.classList.remove("dragging"); scroll.classList.remove("locked");
+  ghost.style.display = "none";
+  clearHover();
+  if (d.el) d.el.style.opacity = "";
 
-  if (dragFrom === "shop") {
-    if (state.gold < itemCost(dragItem)) { flashHint("Not enough gold."); return; }
-    if (!fits(dragItem, r, c)) { flashHint("Doesn't fit there."); return; }
-    state.gold -= itemCost(dragItem);
-    setOcc(dragItem, r, c, dragItem.uid);
-    placed.set(dragItem.uid, { item: dragItem, r, c });
-    shopItems = shopItems.filter(s=>s.uid!==dragItem.uid);
+  if (!d.moved) { showInfo(d.item, d.from); return; }         // it was a tap
+
+  const target = cellAt(e.clientX, e.clientY);
+  const overSalvage = isOverSalvage(e.clientX, e.clientY);
+
+  if (overSalvage && d.from === "grid") {
+    clearOcc(d.item.uid); placed.delete(d.item.uid); state.gold += 1;
+    toast("Salvaged +1💰"); renderPlaced(); renderStats(); return;
+  }
+  if (!target) return;
+  const { r, c } = target;
+  if (d.from === "shop") {
+    if (state.gold < itemCost(d.item)) { toast("Not enough gold"); return; }
+    if (!fits(d.item, r, c)) { toast("Doesn't fit"); return; }
+    state.gold -= itemCost(d.item);
+    setOcc(d.item, r, c, d.item.uid); placed.set(d.item.uid, { item:d.item, r, c });
+    shopItems = shopItems.filter(s=>s.uid!==d.item.uid);
     renderShop();
-  } else { // moving within grid
-    if (!fits(dragItem, r, c, dragItem.uid)) { flashHint("Doesn't fit there."); return; }
-    clearOcc(dragItem.uid);
-    setOcc(dragItem, r, c, dragItem.uid);
-    placed.set(dragItem.uid, { item: dragItem, r, c });
+  } else {
+    if (!fits(d.item, r, c, d.item.uid)) { toast("Doesn't fit"); return; }
+    clearOcc(d.item.uid); setOcc(d.item, r, c, d.item.uid); placed.set(d.item.uid, { item:d.item, r, c });
   }
-  dragItem = null;
   renderPlaced(); renderStats();
+}, { passive:false });
+
+window.addEventListener("pointercancel", () => {
+  if (!drag) return; drag = null;
+  document.body.classList.remove("dragging"); scroll.classList.remove("locked");
+  ghost.style.display="none"; clearHover();
 });
 
-// drop outside grid = salvage (if from grid)
-document.body.addEventListener("dragover", e => e.preventDefault());
-document.body.addEventListener("drop", e => {
-  if (!dragItem) return;
-  if (e.target.closest("#grid") || e.target.closest("#shop")) return;
-  if (dragFrom === "grid") {
-    clearOcc(dragItem.uid); placed.delete(dragItem.uid);
-    state.gold += 1; flashHint("Salvaged for 1g.");
-    dragItem = null; renderPlaced(); renderStats();
-  }
-});
-
-// ============================================================
-//  TOOLTIP
-// ============================================================
-const tip = $("#tooltip");
-function wireTooltip(el, item) {
-  el.addEventListener("mousemove", e => {
-    tip.style.display = "block";
-    tip.style.left = (e.clientX+14)+"px"; tip.style.top = (e.clientY+14)+"px";
-    resolveItem(item);
-    const lines = [];
-    if (item._dmg) lines.push(`Dmg ${item._dmg} · CD ${item.base.cd}s`);
-    if (item.base.block) lines.push(`Block ${item.base.block}`);
-    if (item.base.heal) lines.push(`Heal ${item.base.heal}`);
-    if (item.baseKey==="whetstone") lines.push(`Synergy: +25% dmg to adjacent weapons`);
-    if (item.baseKey==="gem") lines.push(`Synergy: -15% cooldown to adjacent items`);
-    tip.innerHTML = `<b class="c-${item.rarityCls}">${item.base.icon} ${item.rarityName} ${item.base.name}</b><br>
-      <span class="seed">${item.base.w}×${item.base.h} · ${item.base.slot} · seed ${item.seed}</span><br>
-      ${lines.map(l=>`<div>${l}</div>`).join("")}
-      ${item.affixes.map(a=>`<div class="c-${item.rarityCls}">• ${a.label}</div>`).join("")}`;
-  });
-  el.addEventListener("mouseleave", ()=> tip.style.display="none");
+// map a screen point to the top-left grid cell for the held item
+function cellAt(x, y) {
+  const rect = gridEl.getBoundingClientRect();
+  if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return null;
+  const col = Math.floor((x - rect.left) / (CELL + 4));
+  const row = Math.floor((y - rect.top) / (CELL + 4));
+  return { r: Math.max(0, Math.min(ROWS-1, row)), c: Math.max(0, Math.min(COLS-1, col)) };
 }
-
-function flashHint(msg) {
-  const h = $("#hint"); h.textContent = msg; h.style.color = "var(--gold)";
-  setTimeout(()=>{ h.style.color="var(--muted)"; }, 1500);
+function updateHover(x, y) {
+  clearHover();
+  if (isOverSalvage(x, y) && drag.from === "grid") { $("#salvage").classList.add("hot"); return; }
+  const t = cellAt(x, y); if (!t) return;
+  const ok = fits(drag.item, t.r, t.c, drag.from==="grid"?drag.item.uid:null);
+  for (let y2=t.r; y2<t.r+drag.item.base.h && y2<ROWS; y2++)
+    for (let x2=t.c; x2<t.c+drag.item.base.w && x2<COLS; x2++) {
+      const cell = gridEl.children[y2*COLS + x2];
+      if (cell) cell.classList.add(ok ? "ok" : "bad");
+    }
 }
+function clearHover(){ gridEl.querySelectorAll(".cell").forEach(c=>c.classList.remove("ok","bad")); $("#salvage").classList.remove("hot"); }
+function isOverSalvage(x, y){ const r=$("#salvage").getBoundingClientRect(); return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom; }
 
 // ============================================================
-//  SYNERGY (adjacency) — resolved at battle time
+//  INFO SHEET
+// ============================================================
+function showInfo(item, from) {
+  resolveItem(item);
+  const lines = [];
+  if (item._dmg) lines.push(`Damage ${item._dmg} · cooldown ${item.base.cd}s`);
+  if (item.base.block) lines.push(`Block ${item.base.block}`);
+  if (item.base.heal) lines.push(`Heal ${item.base.heal}`);
+  if (item.baseKey==="whetstone") lines.push(`Synergy: +25% damage to adjacent weapons`);
+  if (item.baseKey==="gem") lines.push(`Synergy: −15% cooldown to adjacent items`);
+  $("#sheetBody").innerHTML =
+    `<div class="c-${item.rarityCls}" style="font-size:16px;font-weight:bold">${item.base.icon} ${item.rarityName} ${item.base.name}</div>
+     <div class="hint">${item.base.w}×${item.base.h} · ${item.base.slot} · seed ${item.seed}</div>
+     ${lines.map(l=>`<div>${l}</div>`).join("")}
+     ${item.affixes.map(a=>`<div class="c-${item.rarityCls}">• ${a.label}</div>`).join("")}
+     ${from==="shop"?`<div class="hint" style="margin-top:8px">Cost ${itemCost(item)}💰 — drag onto the grid to buy.</div>`:""}`;
+  $("#sheet").classList.add("open"); $("#scrim").classList.add("open");
+}
+function closeSheet(){ $("#sheet").classList.remove("open"); $("#scrim").classList.remove("open"); }
+$("#sheetClose").onclick = closeSheet; $("#scrim").onclick = closeSheet;
+
+// ============================================================
+//  SYNERGY + AUTO-BATTLE
 // ============================================================
 function adjacentUids(uid) {
   const p = placed.get(uid); if (!p) return [];
-  const { item, r, c } = p;
-  const set = new Set();
+  const { item, r, c } = p; const set = new Set();
   for (let y=r-1;y<=r+item.base.h;y++) for (let x=c-1;x<=c+item.base.w;x++){
     if (y<0||x<0||y>=ROWS||x>=COLS) continue;
-    const inSelf = (y>=r && y<r+item.base.h && x>=c && x<c+item.base.w);
-    if (inSelf) continue;
-    const occ = grid[y][x];
-    if (occ && occ!==uid) set.add(occ);
+    if (y>=r && y<r+item.base.h && x>=c && x<c+item.base.w) continue;
+    const occ=grid[y][x]; if (occ && occ!==uid) set.add(occ);
   }
   return [...set];
 }
-
 function buildLoadout() {
-  // resolve every placed item, then apply adjacency synergies
-  const items = [...placed.values()].map(p => { resolveItem(p.item); return p.item; });
-  for (const { item, uid } of [...placed.values()].map(p=>({item:p.item,uid:p.item.uid}))) {
-    if (item.baseKey==="whetstone") {
-      for (const u of adjacentUids(uid)) { const a=placed.get(u).item; if (a.base.slot==="weapon") a._dmgMul += 0.25; }
-    }
-    if (item.baseKey==="gem") {
-      for (const u of adjacentUids(uid)) { const a=placed.get(u).item; a._cdMul -= 0.15; }
-    }
+  const items = [...placed.values()].map(p=>{ resolveItem(p.item); return p.item; });
+  for (const p of placed.values()) {
+    const item = p.item, uid = item.uid;
+    if (item.baseKey==="whetstone") for (const u of adjacentUids(uid)){ const a=placed.get(u).item; if (a.base.slot==="weapon") a._dmgMul+=0.25; }
+    if (item.baseKey==="gem") for (const u of adjacentUids(uid)){ placed.get(u).item._cdMul-=0.15; }
   }
   return items;
 }
-
-// ============================================================
-//  AUTO-BATTLE (deterministic given seeds + bags)
-// ============================================================
-function buildFighter(items, name, battleSeed) {
-  let maxhp = 60;
-  const weapons = [], armor = [], utils = [];
-  for (const it of items) {
-    maxhp += it._maxhp || 0;
+function buildFighter(items, name, seed) {
+  let maxhp=60; const weapons=[], utils=[]; let block=0, thorns=0;
+  for (const it of items){
+    maxhp += it._maxhp||0;
     if (it.base.slot==="weapon") weapons.push(it);
-    else if (it.base.slot==="armor") armor.push(it);
     else if (it.base.slot==="util") utils.push(it);
+    else if (it.base.slot==="armor"){ block += it._block||0; thorns += it._thorns||0; }
   }
-  const block = armor.reduce((s,a)=>s+(a._block||0),0);
-  const thorns = armor.reduce((s,a)=>s+(a._thorns||0),0);
-  return { name, hp: maxhp, maxhp, block, thorns, weapons, utils,
-    // cooldown timers
-    timers: [...weapons,...utils].map(it=>({ it, t: (it.base.cd||1)*(it._cdMul||1) })),
-    r: rng(battleSeed) };
+  return { name, hp:maxhp, maxhp, block, thorns, weapons, utils,
+    timers:[...weapons,...utils].map(it=>({ it, t:(it.base.cd||1)*(it._cdMul||1) })), r:rng(seed) };
 }
-
-function logLine(cls, msg) {
-  const log = $("#log");
-  const d = document.createElement("div"); d.className=cls; d.textContent=msg;
-  log.appendChild(d); log.scrollTop = log.scrollHeight;
+function logLine(cls,msg){ const l=$("#log"); const d=document.createElement("div"); d.className=cls; d.textContent=msg; l.appendChild(d); l.scrollTop=l.scrollHeight; }
+function setBars(you,foe){
+  $("#youbar").style.width=Math.max(0,you.hp/you.maxhp*100)+"%";
+  $("#foebar").style.width=Math.max(0,foe.hp/foe.maxhp*100)+"%";
+  $("#youhp").textContent=`${Math.max(0,Math.round(you.hp))}/${you.maxhp}`;
+  $("#foehp").textContent=`${Math.max(0,Math.round(foe.hp))}/${foe.maxhp}`;
 }
-
-function setBars(you, foe) {
-  $("#youbar").style.width = Math.max(0,you.hp/you.maxhp*100)+"%";
-  $("#foebar").style.width = Math.max(0,foe.hp/foe.maxhp*100)+"%";
-  $("#youhp").textContent = `${Math.max(0,Math.round(you.hp))}/${you.maxhp}`;
-  $("#foehp").textContent = `${Math.max(0,Math.round(foe.hp))}/${foe.maxhp}`;
-}
-
 async function runBattle(you, foe) {
-  $("#log").innerHTML = "";
-  logLine("sys", `— Round ${state.round}: ${you.weapons.length} weapons vs ${foe.weapons.length} —`);
-  setBars(you, foe);
-  let time = 0; const DT = 0.1; const MAX = 40;
-
-  function tick(self, opp, sideCls) {
-    for (const tm of self.timers) {
-      tm.t -= DT;
-      if (tm.t <= 0) {
-        const it = tm.it;
-        tm.t += (it.base.cd||1) * (it._cdMul||1);
-        if (it.base.slot==="util" && it._heal) {
-          self.hp = Math.min(self.maxhp, self.hp + it._heal);
-          logLine(sideCls, `${self.name} drinks ${it.base.name} (+${it._heal} hp)`);
-          continue;
-        }
-        // weapon hit
-        let dmg = (it._dmg + it._bonusDmg) * it._dmgMul;
-        let critTxt = "";
-        if (self.r() < (it._crit||0)) { dmg *= 2; critTxt = " CRIT!"; }
-        dmg = Math.max(1, Math.round(dmg - opp.block*0.5));
-        opp.hp -= dmg;
-        if (it._lifesteal) self.hp = Math.min(self.maxhp, self.hp + Math.round(dmg*it._lifesteal));
-        if (opp.thorns) self.hp -= opp.thorns;
-        logLine(sideCls, `${self.name}'s ${it.base.name} hits for ${dmg}${critTxt}` +
-          (opp.thorns?` (took ${opp.thorns} thorns)`:""));
-      }
+  $("#log").innerHTML=""; logLine("sys",`— Round ${state.round}: ${you.weapons.length} weapons vs ${foe.weapons.length} —`);
+  setBars(you,foe); let time=0; const DT=0.1, MAX=40;
+  function tick(self,opp,cls){
+    for (const tm of self.timers){
+      tm.t-=DT; if (tm.t>0) continue;
+      const it=tm.it; tm.t += (it.base.cd||1)*(it._cdMul||1);
+      if (it.base.slot==="util" && it._heal){ self.hp=Math.min(self.maxhp,self.hp+it._heal); logLine(cls,`${self.name} drinks ${it.base.name} (+${it._heal})`); continue; }
+      let dmg=(it._dmg+it._bonusDmg)*it._dmgMul, crit="";
+      if (self.r()<(it._crit||0)){ dmg*=2; crit=" CRIT!"; }
+      dmg=Math.max(1,Math.round(dmg-opp.block*0.5)); opp.hp-=dmg;
+      if (it._lifesteal) self.hp=Math.min(self.maxhp,self.hp+Math.round(dmg*it._lifesteal));
+      if (opp.thorns) self.hp-=opp.thorns;
+      logLine(cls,`${self.name}'s ${it.base.name} hits ${dmg}${crit}`+(opp.thorns?` (−${opp.thorns} thorns)`:""));
     }
   }
-
-  while (time < MAX && you.hp > 0 && foe.hp > 0) {
-    tick(you, foe, "you");
-    tick(foe, you, "foe");
-    setBars(you, foe);
-    time += DT;
-    if (Math.round(time*10) % 3 === 0) await new Promise(r=>setTimeout(r, 30));
+  while (time<MAX && you.hp>0 && foe.hp>0){
+    tick(you,foe,"you"); tick(foe,you,"foe"); setBars(you,foe); time+=DT;
+    if (Math.round(time*10)%3===0) await new Promise(r=>setTimeout(r,35));
   }
-  setBars(you, foe);
-  const win = you.hp > foe.hp;
-  logLine("sys", win ? "✅ You win!" : (you.hp<=0 && foe.hp<=0 ? "Draw → loss" : "❌ You lose."));
+  setBars(you,foe);
+  const win = you.hp>foe.hp;
+  logLine("sys", win?"✅ You win!":(you.hp<=0&&foe.hp<=0?"Draw → loss":"❌ You lose."));
   return win;
+}
+function generateAIBag(round) {
+  const r = rng(nextSeed());
+  const pool=["sword","sword","dagger","shield","potion","axe","whetstone","gem"];
+  const count=Math.min(8, 3+Math.floor(round*0.8)); const items=[];
+  for (let i=0;i<count;i++) items.push(rollItem(pool[Math.floor(r()*pool.length)], nextSeed()));
+  items.forEach(resolveItem); return items;
 }
 
 // ============================================================
 //  ROUND FLOW
 // ============================================================
-function generateAIBag(round) {
-  // opponent scales with round; built from random rolled items placed greedily
-  const r = rng(nextSeed());
-  const slots = ["sword","sword","dagger","shield","potion","axe","whetstone","gem"];
-  const count = Math.min(8, 3 + Math.floor(round*0.8));
-  const items = [];
-  for (let i=0;i<count;i++){
-    const baseKey = slots[Math.floor(r()*slots.length)];
-    items.push(rollItem(baseKey, nextSeed()));
-  }
-  // resolve + crude synergy (assume adjacency for AI flavor)
-  items.forEach(resolveItem);
-  return items;
-}
-
 function refillShop(cost) {
-  if (cost && state.gold < cost) { flashHint("Not enough gold to reroll."); return; }
-  if (cost) state.gold -= cost;
-  const keys = Object.keys(BASES);
-  shopItems = [];
-  for (let i=0;i<5;i++){
-    const k = keys[Math.floor(rng(nextSeed())()*keys.length)];
-    shopItems.push(rollItem(k, nextSeed()));
-  }
+  if (cost && state.gold<cost){ toast("Not enough gold"); return; }
+  if (cost) state.gold-=cost;
+  const keys=Object.keys(BASES); shopItems=[];
+  for (let i=0;i<6;i++) shopItems.push(rollItem(keys[Math.floor(rng(nextSeed())()*keys.length)], nextSeed()));
   renderShop(); renderStats();
 }
-
-$("#reroll").onclick = ()=> refillShop(2);
-
+$("#reroll").onclick = ()=>refillShop(2);
 $("#fight").onclick = async () => {
-  const youItems = buildLoadout();
-  if (youItems.filter(i=>i.base.slot==="weapon").length === 0) {
-    flashHint("Place at least one weapon first."); return;
-  }
-  $("#fight").disabled = true;
-  const you = buildFighter(youItems, "You", nextSeed());
-  const foe = buildFighter(generateAIBag(state.round), "Foe", nextSeed());
-  const win = await runBattle(you, foe);
-  if (win) { state.wins++; state.gold += 4 + state.round; flashHint(`Win! +${4+state.round}g`); }
-  else { state.losses++; state.gold += 2; flashHint("Loss. +2g consolation."); }
-  state.fought = true;
-  $("#next").disabled = false;
-  renderStats();
+  const items = buildLoadout();
+  if (items.filter(i=>i.base.slot==="weapon").length===0){ toast("Place a weapon first"); return; }
+  $("#fight").disabled=true; $("#reroll").disabled=true;
+  const you=buildFighter(items,"You",nextSeed()), foe=buildFighter(generateAIBag(state.round),"Foe",nextSeed());
+  const win=await runBattle(you,foe);
+  if (win){ state.wins++; const g=4+state.round; state.gold+=g; toast(`Win! +${g}💰`); }
+  else { state.losses++; state.gold+=2; toast("Loss. +2💰"); }
+  $("#next").disabled=false; $("#reroll").disabled=false; renderStats();
 };
-
 $("#next").onclick = () => {
-  state.round++;
-  state.gold += 3; // income
-  state.fought = false;
-  $("#fight").disabled = false;
-  $("#next").disabled = true;
-  refillShop(0);
-  flashHint(`Round ${state.round}. +3g income.`);
-  renderStats();
+  state.round++; state.gold+=3;
+  $("#fight").disabled=false; $("#next").disabled=true;
+  refillShop(0); toast(`Round ${state.round} · +3💰`); renderStats();
 };
 
 // ============================================================
-//  BOOT
+//  BOOT + PWA
 // ============================================================
-buildGrid();
-refillShop(0);
-renderStats();
-logLine("sys", "Welcome. Buy items (drag from shop into the grid), build a bag, then Fight!");
-logLine("sys", "Tip: put a Whetstone 🪨 next to weapons, a Mana Gem 💎 next to anything.");
+let resizeT;
+window.addEventListener("resize", ()=>{ clearTimeout(resizeT); resizeT=setTimeout(buildGrid, 150); });
+buildGrid(); refillShop(0); renderStats();
+logLine("sys","Welcome! Drag items from the shop into your backpack, then Fight.");
+logLine("sys","Tip: Whetstone 🪨 buffs adjacent weapons; Mana Gem 💎 cuts cooldowns.");
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 </script>
 </body>
 </html>

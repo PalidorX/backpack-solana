@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#11131a"/>
+  <rect x="56" y="56" width="400" height="400" rx="40" fill="#1b1f2b" stroke="#2e3548" stroke-width="6"/>
+  <!-- sword -->
+  <g transform="rotate(45 256 256)">
+    <rect x="240" y="120" width="32" height="200" rx="6" fill="#f5c451"/>
+    <polygon points="240,120 272,120 256,92" fill="#f5c451"/>
+    <rect x="208" y="320" width="96" height="22" rx="8" fill="#c084fc"/>
+    <rect x="246" y="342" width="20" height="56" rx="6" fill="#6aa9ff"/>
+  </g>
+  <!-- gem -->
+  <circle cx="370" cy="150" r="26" fill="#6aa9ff"/>
+  <circle cx="150" cy="370" r="20" fill="#4ade80"/>
+</svg>
