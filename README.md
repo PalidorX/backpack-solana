@@ -59,6 +59,9 @@ Two PvE modes selected from a home screen; gold and your item collection persist
     Vampiric, Midas, …) that stack over the run and vanish when it ends.
   - **Permadeath + banked rewards**: one life; rewards scale with the floor reached; the boss is
     the jackpot.
+  - **Slay-the-Spire map**: the dungeon is a branching node map (seeded). Node types — ⚔️ Battle,
+    ☠️ Elite (tougher, drops a gem + Blessing), 🛒 Shop, 💎 Treasure, ❓ Event (a choice dilemma),
+    🔥 Campfire (pick a Blessing), 👑 Boss. You choose your route, trading risk for reward.
 
 ## Combat depth — solving the matchup (PvE)
 Decisions in the prep phase are meant to *be* the gameplay. Two layers:
