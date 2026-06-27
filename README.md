@@ -1,2 +1,59 @@
-# backpack-solana
-solanapack
+# Affix Brawlers (working title)
+
+A spatial auto-battler in the spirit of **Backpack Battles**, fused with **Diablo-style
+random affix rolls**, designed to grow into a **Solana** blockchain game. This repo starts
+as a pure HTML5 prototype — *game-first, chain-later*.
+
+Open `index.html` in a browser. No build step, no dependencies.
+
+## The pitch
+
+> A spatial auto-battler where every item is a **base type + a randomly-rolled set of
+> affixes**. The meta-game is hunting, rolling, and combining loot into a synergistic bag.
+> Because each rolled item is unique, items map naturally onto **on-chain NFTs** whose
+> affixes are verifiable attributes.
+
+### Why these two genres combine well
+- **Backpack Battles** gives the *spatial puzzle* (Tetris-shaped items on a grid, adjacency
+  synergies) and the *async auto-battler* loop (assemble a bag, fight a snapshot of another
+  player's bag).
+- **Diablo** gives the *loot chase*: the same base item rolls different affixes at different
+  tiers, so "did I roll a god item?" becomes the dopamine engine.
+
+### Why Solana
+- Cheap + fast transactions make per-item mints and frequent trades viable (Ethereum gas
+  would kill this loop).
+- **Compressed NFTs** (Metaplex Bubblegum) let you mint millions of loot items for fractions
+  of a cent — essential when every drop is an NFT.
+- The one hard part is **provably-fair randomness**: affix rolls must use a VRF
+  (Switchboard) or commit-reveal, or players will assume the house cheats.
+
+## Core gameplay loop
+1. **Acquire** — spend currency/mats to roll an item: base type chosen, then N affixes roll
+   from a weighted, tiered pool. → (later) mints a loot NFT.
+2. **Build** — drag items into the grid backpack. Solve the spatial puzzle; exploit adjacency
+   synergies; commit to an archetype.
+3. **Battle** — auto-resolve vs. another player's saved bag. Deterministic given both bags +
+   a seed, so the result is verifiable.
+4. **Reward** — win → currency + crafting mats + ladder points, which feed back into step 1.
+5. **Sink & churn** — re-roll affixes, salvage junk into mats, or trade on a marketplace.
+
+## What the prototype currently demonstrates
+- Seeded **affix-roll generator** (`rollItem`) — base type + weighted/tiered affixes. The
+  seed is shown on each item and is the swap point for an on-chain VRF.
+- **Grid backpack** with drag-and-drop, item shapes, fit-checking, and salvage-on-drop-out.
+- **Adjacency synergies** (Whetstone buffs adjacent weapons; Mana Gem cuts adjacent cooldowns).
+- **Deterministic auto-battle** resolver with cooldowns, crits, lifesteal, block, thorns, heals.
+- **Round economy**: shop, rerolls, income, win/loss rewards.
+
+## Roadmap to chain
+- **Phase 1 (now):** prove the loop is fun, fully client-side. ✅ prototype in `index.html`.
+- **Phase 2:** persistence + async PvP vs. saved bags; mock wallet/inventory abstraction so the
+  Solana swap is clean.
+- **Phase 3:** Solana integration — Switchboard VRF for rolls, Metaplex compressed-NFT mints
+  for items, on-chain bag snapshots for verifiable battles, and a marketplace.
+
+## Design notes for the data model
+An item is fully described by `{ base, rarity, affixes:[{id,tier,value}], seed }`. Combat
+stats are *derived* from that tuple at battle time, so the canonical on-chain record stays
+tiny (base id + seed is enough to reproduce the full item deterministically).
